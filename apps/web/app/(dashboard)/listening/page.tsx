@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useCallback } from 'react';
 import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 const TRACKS = [
   {
@@ -134,6 +135,7 @@ function AudioWave({ playing }: { playing: boolean }) {
 }
 
 export default function ListeningPage() {
+  const { user, updateUser } = useAuthStore();
   const [view, setView] = useState<ViewState>('list');
   const [selectedTrack, setSelectedTrack] = useState<typeof TRACKS[0] | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -209,11 +211,17 @@ export default function ListeningPage() {
     if (selected !== null || !selectedTrack) return;
     setSelected(idx);
     setTimeout(() => {
-      setAnswers((a) => [...a, idx]);
+      const newAnswers = [...answers, idx];
+      setAnswers(newAnswers);
       if (currentQ + 1 < selectedTrack.questions.length) {
         setCurrentQ((q) => q + 1);
         setSelected(null);
       } else {
+        const finalCorrect = newAnswers.filter((a, i) => a === selectedTrack.questions[i]?.correct).length;
+        const finalPct = Math.round((finalCorrect / selectedTrack.questions.length) * 100);
+        if (finalPct >= 70) {
+          updateUser({ totalXP: (user?.totalXP || 0) + selectedTrack.xp });
+        }
         setView('result');
       }
     }, 900);

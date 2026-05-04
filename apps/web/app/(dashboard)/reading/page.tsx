@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 const STORIES = [
   {
@@ -112,6 +113,7 @@ const LEVEL_COLORS: Record<string, string> = {
 type ViewState = 'list' | 'reading' | 'quiz' | 'result';
 
 export default function ReadingPage() {
+  const { user, updateUser } = useAuthStore();
   const [view, setView] = useState<ViewState>('list');
   const [selectedStory, setSelectedStory] = useState<typeof STORIES[0] | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
@@ -135,11 +137,17 @@ export default function ReadingPage() {
     if (selected !== null) return;
     setSelected(idx);
     setTimeout(() => {
-      setAnswers((a) => [...a, idx]);
+      const newAnswers = [...answers, idx];
+      setAnswers(newAnswers);
       if (currentQ + 1 < (selectedStory?.questions.length || 0)) {
         setCurrentQ((q) => q + 1);
         setSelected(null);
       } else {
+        const finalCorrect = newAnswers.filter((a, i) => a === selectedStory?.questions[i]?.correct).length;
+        const finalPct = selectedStory ? Math.round((finalCorrect / selectedStory.questions.length) * 100) : 0;
+        if (finalPct >= 70) {
+          updateUser({ totalXP: (user?.totalXP || 0) + (selectedStory?.xp || 0) });
+        }
         setView('result');
       }
     }, 900);

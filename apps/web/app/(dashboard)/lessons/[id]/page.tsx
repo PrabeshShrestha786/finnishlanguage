@@ -1,9 +1,12 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Trophy, Zap, RotateCcw } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 const LESSON_DATA: Record<string, {
   title: string;
@@ -44,6 +47,11 @@ const LESSON_DATA: Record<string, {
   },
 };
 
+const DB_LESSON_IDS: Record<string, string> = {
+  '1': 'lesson-greetings-1',
+  '7': 'lesson-grammar-verb-olla',
+};
+
 const DEFAULT_LESSON = {
   title: 'Finnish Lesson',
   xp: 30,
@@ -63,11 +71,27 @@ export default function LessonPage() {
   const router = useRouter();
   const lessonId = params?.id as string;
   const lesson = LESSON_DATA[lessonId] || DEFAULT_LESSON;
+  const { user, updateUser } = useAuthStore();
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [xpEarned, setXpEarned] = useState<number | null>(null);
+  const startTimeRef = useRef(Date.now());
+
+  const attemptMutation = useMutation({
+    mutationFn: (finalScore: number) => {
+      const dbLessonId = DB_LESSON_IDS[lessonId] || lessonId;
+      const timeSpentSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      return api.post(`/lessons/${dbLessonId}/attempt`, { answer: { score: finalScore, completed: true }, timeSpentSec });
+    },
+    onSuccess: (res) => {
+      const earned: number = res.data?.data?.xpEarned ?? lesson.xp;
+      setXpEarned(earned);
+      updateUser({ totalXP: (user?.totalXP || 0) + earned });
+    },
+  });
 
   const slide = lesson.slides[currentSlide];
   const isLast = currentSlide === lesson.slides.length - 1;
@@ -79,6 +103,16 @@ export default function LessonPage() {
   const correctCount = quizAnswers.filter((q) => q.answer === q.correct).length;
   const score = quizSlides.length > 0 ? Math.round((correctCount / quizSlides.length) * 100) : 100;
 
+  const completeLesson = (finalAnswers: (number | null)[]) => {
+    setCompleted(true);
+    const finalCorrect = lesson.slides.reduce((acc, s, i) => {
+      if (s.type === 'quiz' && finalAnswers[i] === s.correct) acc++;
+      return acc;
+    }, 0);
+    const finalScore = quizSlides.length > 0 ? Math.round((finalCorrect / quizSlides.length) * 100) : 100;
+    attemptMutation.mutate(finalScore);
+  };
+
   const handleAnswer = (idx: number) => {
     if (selected !== null) return;
     setSelected(idx);
@@ -86,17 +120,17 @@ export default function LessonPage() {
     newAnswers[currentSlide] = idx;
     setAnswers(newAnswers);
     setTimeout(() => {
-      if (isLast) { setCompleted(true); } else { setCurrentSlide((s) => s + 1); setSelected(null); }
+      if (isLast) { completeLesson(newAnswers); } else { setCurrentSlide((s) => s + 1); setSelected(null); }
     }, 1000);
   };
 
   const next = () => {
-    if (isLast) { setCompleted(true); return; }
+    if (isLast) { completeLesson(answers); return; }
     setCurrentSlide((s) => s + 1);
     setSelected(null);
   };
 
-  const restart = () => { setCurrentSlide(0); setAnswers([]); setSelected(null); setCompleted(false); };
+  const restart = () => { setCurrentSlide(0); setAnswers([]); setSelected(null); setCompleted(false); setXpEarned(null); startTimeRef.current = Date.now(); };
 
   if (completed) {
     return (
@@ -115,7 +149,7 @@ export default function LessonPage() {
             </div>
           )}
           <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-lg mb-6">
-            <Zap className="w-5 h-5 text-amber-500" />+{lesson.xp} XP Earned!
+            <Zap className="w-5 h-5 text-amber-500" />+{xpEarned ?? lesson.xp} XP Earned!
           </div>
           <div className="flex gap-3">
             <button onClick={restart} className="btn-secondary flex-1 py-2.5 text-sm flex items-center justify-center gap-2">
