@@ -1,0 +1,16 @@
+{
+  "name": "FinnMate – Learn Finnish",
+  "short_name": "FinnMate",
+  "description": "AI-powered Finnish language learning platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#254ded",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

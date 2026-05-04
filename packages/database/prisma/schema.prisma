@@ -1,0 +1,654 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  PREMIUM
+  TEAM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  PAUSED
+}
+
+enum FinnishLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum NativeLanguage {
+  ENGLISH
+  NEPALI
+  HINDI
+  ARABIC
+  URDU
+  SPANISH
+  FRENCH
+  GERMAN
+  RUSSIAN
+  CHINESE
+  JAPANESE
+  KOREAN
+  PORTUGUESE
+  ITALIAN
+  SWEDISH
+  OTHER
+}
+
+enum LessonType {
+  READING
+  WRITING
+  LISTENING
+  SPEAKING
+  VOCABULARY
+  GRAMMAR
+  YKI_PREP
+  CONVERSATION
+  PRONUNCIATION
+  TRANSLATION
+}
+
+enum ExerciseType {
+  MCQ
+  FILL_BLANK
+  DRAG_DROP
+  MATCH_PAIRS
+  REARRANGE
+  TYPING
+  PRONUNCIATION
+  DICTATION
+  ESSAY
+  TRANSLATION
+  FLASHCARD
+  MEMORY_GAME
+}
+
+enum Difficulty {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  PROFICIENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum NotificationType {
+  STREAK_REMINDER
+  LESSON_COMPLETE
+  ACHIEVEMENT
+  LEVEL_UP
+  LEADERBOARD
+  EXAM_REMINDER
+  MARKETING
+  SYSTEM
+}
+
+enum AchievementType {
+  STREAK
+  XP_MILESTONE
+  LESSON_COUNT
+  PERFECT_SCORE
+  LEVEL_UP
+  SPEAKING_CHALLENGE
+  VOCABULARY_MASTER
+  EXAM_PASS
+  SOCIAL
+}
+
+// ─── USER ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  username          String             @unique
+  passwordHash      String?
+  firstName         String
+  lastName          String
+  avatar            String?
+  role              Role               @default(USER)
+  nativeLanguage    NativeLanguage     @default(ENGLISH)
+  finnishLevel      FinnishLevel       @default(A1)
+  targetLevel       FinnishLevel       @default(B1)
+  timezone          String             @default("Europe/Helsinki")
+  dailyGoalMinutes  Int                @default(15)
+  totalXP           Int                @default(0)
+  currentStreak     Int                @default(0)
+  longestStreak     Int                @default(0)
+  lastActiveAt      DateTime?
+  isEmailVerified   Boolean            @default(false)
+  emailVerifyToken  String?
+  resetPasswordToken String?
+  resetPasswordExpiry DateTime?
+  googleId          String?            @unique
+  facebookId        String?            @unique
+  appleId           String?            @unique
+  referralCode      String             @unique @default(cuid())
+  referredById      String?
+  referredBy        User?              @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]             @relation("Referrals")
+  isBanned          Boolean            @default(false)
+  banReason         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  subscription      Subscription?
+  attempts          Attempt[]
+  vocabularyProgress VocabProgress[]
+  streaks           StreakRecord[]
+  achievements      UserAchievement[]
+  notifications     Notification[]
+  certificates      Certificate[]
+  chatMessages      ChatMessage[]
+  payments          Payment[]
+  leaderboardEntries LeaderboardEntry[]
+  studyPlans        StudyPlan[]
+  writingSubmissions WritingSubmission[]
+  speakingAttempts  SpeakingAttempt[]
+
+  @@index([email])
+  @@index([username])
+  @@index([totalXP])
+}
+
+// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                SubscriptionPlan   @default(FREE)
+  status              SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId    String?            @unique
+  stripeSubscriptionId String?           @unique
+  stripePriceId       String?
+  paypalSubscriptionId String?           @unique
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  trialStart          DateTime?
+  trialEnd            DateTime?
+  canceledAt          DateTime?
+  teamSize            Int?
+  couponCode          String?
+  discountPercent     Int?               @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+}
+
+// ─── PAYMENT ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Float
+  currency        String        @default("EUR")
+  status          PaymentStatus @default(PENDING)
+  provider        String
+  providerPaymentId String?
+  description     String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId])
+}
+
+// ─── COURSE ──────────────────────────────────────────────────────────────────
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  level       FinnishLevel
+  imageUrl    String?
+  color       String?
+  isPublished Boolean      @default(false)
+  order       Int          @default(0)
+  totalXP     Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  modules     Module[]
+
+  @@index([level])
+}
+
+// ─── MODULE ──────────────────────────────────────────────────────────────────
+
+model Module {
+  id          String     @id @default(cuid())
+  courseId    String
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  type        LessonType
+  order       Int        @default(0)
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  lessons     Lesson[]
+
+  @@index([courseId])
+}
+
+// ─── LESSON ──────────────────────────────────────────────────────────────────
+
+model Lesson {
+  id              String      @id @default(cuid())
+  moduleId        String
+  module          Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  type            LessonType
+  level           FinnishLevel
+  difficulty      Difficulty  @default(BEGINNER)
+  content         Json
+  audioUrl        String?
+  videoUrl        String?
+  imageUrl        String?
+  transcriptUrl   String?
+  estimatedMinutes Int        @default(10)
+  xpReward        Int         @default(10)
+  order           Int         @default(0)
+  isPublished     Boolean     @default(false)
+  isFree          Boolean     @default(false)
+  tags            String[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  exercises       Exercise[]
+  attempts        Attempt[]
+
+  @@index([moduleId])
+  @@index([type, level])
+}
+
+// ─── EXERCISE ─────────────────────────────────────────────────────────────────
+
+model Exercise {
+  id              String       @id @default(cuid())
+  lessonId        String
+  lesson          Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type            ExerciseType
+  question        String
+  instructions    String?
+  options         Json?
+  correctAnswer   Json
+  explanation     String?
+  hint            String?
+  audioUrl        String?
+  imageUrl        String?
+  points          Int          @default(10)
+  order           Int          @default(0)
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  attempts        Attempt[]
+
+  @@index([lessonId])
+}
+
+// ─── ATTEMPT ─────────────────────────────────────────────────────────────────
+
+model Attempt {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId      String?
+  lesson        Lesson?   @relation(fields: [lessonId], references: [id])
+  exerciseId    String?
+  exercise      Exercise? @relation(fields: [exerciseId], references: [id])
+  answer        Json
+  isCorrect     Boolean
+  score         Int       @default(0)
+  maxScore      Int       @default(10)
+  timeSpentSec  Int       @default(0)
+  xpEarned      Int       @default(0)
+  streak        Int       @default(0)
+  completedAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([lessonId])
+  @@index([completedAt])
+}
+
+// ─── VOCABULARY ───────────────────────────────────────────────────────────────
+
+model VocabWord {
+  id              String    @id @default(cuid())
+  finnish         String    @unique
+  english         String
+  translation     Json
+  pronunciation   String?
+  audioUrl        String?
+  imageUrl        String?
+  partOfSpeech    String?
+  category        String?
+  level           FinnishLevel
+  exampleSentence String?
+  exampleTranslation String?
+  tags            String[]
+  createdAt       DateTime  @default(now())
+
+  progress        VocabProgress[]
+
+  @@index([category])
+  @@index([level])
+}
+
+model VocabProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wordId          String
+  word            VocabWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  easeFactor      Float     @default(2.5)
+  interval        Int       @default(1)
+  repetitions     Int       @default(0)
+  nextReview      DateTime  @default(now())
+  lastReview      DateTime?
+  isLearned       Boolean   @default(false)
+  isFavorite      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, wordId])
+  @@index([userId, nextReview])
+}
+
+// ─── STREAK ───────────────────────────────────────────────────────────────────
+
+model StreakRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  xpEarned  Int      @default(0)
+  minutes   Int      @default(0)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ─── ACHIEVEMENTS ─────────────────────────────────────────────────────────────
+
+model Achievement {
+  id          String          @id @default(cuid())
+  type        AchievementType
+  title       String
+  description String
+  iconUrl     String?
+  xpReward    Int             @default(50)
+  threshold   Int
+  rarity      String          @default("COMMON")
+  createdAt   DateTime        @default(now())
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+
+model LeaderboardEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  week      String
+  xp        Int      @default(0)
+  rank      Int?
+  league    String   @default("BRONZE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, week])
+  @@index([week, xp])
+}
+
+// ─── CERTIFICATE ──────────────────────────────────────────────────────────────
+
+model Certificate {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level       FinnishLevel
+  type        String
+  title       String
+  issueDate   DateTime     @default(now())
+  expiryDate  DateTime?
+  certificateUrl String?
+  shareCode   String       @unique @default(cuid())
+  metadata    Json?
+
+  @@index([userId])
+}
+
+// ─── AI CHAT ──────────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String
+  content     String
+  audioUrl    String?
+  tokens      Int?
+  corrections Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── GRAMMAR RULES ────────────────────────────────────────────────────────────
+
+model GrammarRule {
+  id          String       @id @default(cuid())
+  title       String
+  category    String
+  level       FinnishLevel
+  explanation String
+  examples    Json
+  exercises   Json?
+  tips        String?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([category, level])
+}
+
+// ─── YKI EXAM ─────────────────────────────────────────────────────────────────
+
+model YkiExam {
+  id            String       @id @default(cuid())
+  title         String
+  level         FinnishLevel
+  year          Int
+  section       String
+  timeLimit     Int
+  totalPoints   Int
+  passingPoints Int
+  instructions  String
+  content       Json
+  audioUrl      String?
+  isPublished   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  attempts      YkiAttempt[]
+}
+
+model YkiAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  examId      String
+  exam        YkiExam   @relation(fields: [examId], references: [id])
+  answers     Json
+  score       Int
+  maxScore    Int
+  passed      Boolean
+  feedback    String?
+  startedAt   DateTime
+  completedAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─── WRITING SUBMISSIONS ──────────────────────────────────────────────────────
+
+model WritingSubmission {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt      String
+  content     String
+  aiFeedback  Json?
+  score       Int?
+  level       FinnishLevel
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── SPEAKING ATTEMPTS ────────────────────────────────────────────────────────
+
+model SpeakingAttempt {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt        String
+  audioUrl      String
+  transcript    String?
+  pronunciationScore Float?
+  fluencyScore  Float?
+  aiFeedback    Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── STUDY PLAN ───────────────────────────────────────────────────────────────
+
+model StudyPlan {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  targetLevel FinnishLevel
+  targetDate  DateTime?
+  schedule    Json
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([userId, isActive])
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+// ─── COUPON ───────────────────────────────────────────────────────────────────
+
+model Coupon {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discountPercent Int
+  maxUses         Int?
+  usedCount       Int      @default(0)
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  isActive        Boolean  @default(true)
+  applicablePlans String[]
+  createdAt       DateTime @default(now())
+}
+
+// ─── ADMIN LOGS ───────────────────────────────────────────────────────────────
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String?
+  targetId  String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+// ─── AUDIO FILES ──────────────────────────────────────────────────────────────
+
+model AudioFile {
+  id        String   @id @default(cuid())
+  url       String
+  text      String?
+  language  String   @default("fi")
+  voice     String?
+  duration  Int?
+  speed     Float    @default(1.0)
+  createdAt DateTime @default(now())
+}
