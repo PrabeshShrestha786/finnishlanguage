@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -26,5 +26,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Get dashboard stats' })
   getDashboard(@Request() req: any) {
     return this.usersService.getDashboardStats(req.user.sub);
+  }
+
+  @Post('xp')
+  @ApiOperation({ summary: 'Award XP for an activity (reading, listening, etc.)' })
+  awardXP(@Body() body: { xpEarned: number; source?: string }, @Request() req: any) {
+    return this.usersService.awardXP(req.user.sub, body.xpEarned, body.source);
   }
 }

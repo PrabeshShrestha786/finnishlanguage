@@ -91,6 +91,24 @@ export class UsersService {
     };
   }
 
+  async awardXP(userId: string, xpEarned: number, source?: string) {
+    if (xpEarned <= 0) return { xpEarned: 0 };
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
+    });
+    await this.prisma.attempt.create({
+      data: {
+        userId,
+        answer: { source: source || 'activity' },
+        isCorrect: true,
+        score: xpEarned,
+        xpEarned,
+      },
+    });
+    return { xpEarned };
+  }
+
   async updateStreak(userId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

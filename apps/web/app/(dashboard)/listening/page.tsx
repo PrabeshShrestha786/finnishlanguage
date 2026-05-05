@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useCallback } from 'react';
 import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 
 const TRACKS = [
   {
@@ -220,7 +221,9 @@ export default function ListeningPage() {
         const finalCorrect = newAnswers.filter((a, i) => a === selectedTrack.questions[i]?.correct).length;
         const finalPct = Math.round((finalCorrect / selectedTrack.questions.length) * 100);
         if (finalPct >= 70) {
-          updateUser({ totalXP: (user?.totalXP || 0) + selectedTrack.xp });
+          const xp = selectedTrack.xp;
+          updateUser({ totalXP: (user?.totalXP || 0) + xp });
+          api.post('/users/xp', { xpEarned: xp, source: 'listening' }).catch(() => {});
         }
         setView('result');
       }

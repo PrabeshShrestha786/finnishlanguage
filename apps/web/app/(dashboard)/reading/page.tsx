@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 
 const STORIES = [
   {
@@ -145,8 +146,10 @@ export default function ReadingPage() {
       } else {
         const finalCorrect = newAnswers.filter((a, i) => a === selectedStory?.questions[i]?.correct).length;
         const finalPct = selectedStory ? Math.round((finalCorrect / selectedStory.questions.length) * 100) : 0;
-        if (finalPct >= 70) {
-          updateUser({ totalXP: (user?.totalXP || 0) + (selectedStory?.xp || 0) });
+        if (finalPct >= 70 && selectedStory) {
+          const xp = selectedStory.xp;
+          updateUser({ totalXP: (user?.totalXP || 0) + xp });
+          api.post('/users/xp', { xpEarned: xp, source: 'reading' }).catch(() => {});
         }
         setView('result');
       }
