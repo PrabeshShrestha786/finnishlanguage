@@ -597,6 +597,7 @@ export default function ReadingPage() {
       const raw = res.data.data;
       if (!raw?.title || !raw?.text) throw new Error('Invalid response');
       const color = AI_COLORS[aiStories.length % AI_COLORS.length];
+      const tempId = Date.now();
       const storyPayload = {
         title: raw.title,
         titleEn: raw.titleEn || '',
@@ -613,13 +614,20 @@ export default function ReadingPage() {
           correct: q.correct,
         })),
       };
-      // Persist to backend — get back the DB id
-      const saved = await api.post('/ai/stories', storyPayload);
-      const dbId: string = saved.data.id;
-      const newStory: AnyStory = { ...storyPayload, id: dbId, dbId };
-      setAiStories((prev) => [newStory, ...prev]);
-      toast.success('Story saved to your library! 🇫🇮', { id: toastId });
+      // Show story immediately (session only), then persist in background
+      const sessionStory: AnyStory = { ...storyPayload, id: tempId };
+      setAiStories((prev) => [sessionStory, ...prev]);
+      toast.success('Story generated! 🇫🇮', { id: toastId });
       setGenTopic('');
+      // Persist to backend — swap temp id for DB id on success
+      api.post('/ai/stories', storyPayload)
+        .then((saved) => {
+          const dbId: string = saved.data.id;
+          setAiStories((prev) =>
+            prev.map((s) => s.id === tempId ? { ...s, id: dbId, dbId } : s)
+          );
+        })
+        .catch(() => {/* story still visible for this session */});
     } catch {
       toast.error('Failed to generate story. Try again.', { id: toastId });
     } finally {
