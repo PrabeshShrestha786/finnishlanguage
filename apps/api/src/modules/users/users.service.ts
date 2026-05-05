@@ -47,13 +47,12 @@ export class UsersService {
           finnishLevel: true, targetLevel: true, dailyGoalMinutes: true,
         },
       }),
-      this.prisma.attempt.groupBy({
-        by: ['completedAt'],
+      this.prisma.attempt.findMany({
         where: {
           userId,
           completedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
-        _sum: { xpEarned: true, timeSpentSec: true },
+        select: { completedAt: true, xpEarned: true },
       }),
       this.prisma.attempt.findMany({
         where: { userId, lessonId: { not: null } },
@@ -73,11 +72,20 @@ export class UsersService {
       _sum: { xpEarned: true, timeSpentSec: true },
     });
 
+    // Build a 7-element array [Mon..Sun] with XP totals per day
+    const dailyXP = [0, 0, 0, 0, 0, 0, 0];
+    for (const a of weeklyAttempts) {
+      const d = new Date(a.completedAt);
+      // getDay() returns 0=Sun..6=Sat; shift to Mon=0..Sun=6
+      const dayIdx = (d.getDay() + 6) % 7;
+      dailyXP[dayIdx] += a.xpEarned || 0;
+    }
+
     return {
       ...user,
       todayXP: todayXP._sum.xpEarned || 0,
       todayMinutes: Math.ceil((todayXP._sum.timeSpentSec || 0) / 60),
-      weeklyXP: weeklyAttempts,
+      weeklyXP: dailyXP,
       recentLessons,
       wordsStudied: vocabStats._count.id,
     };

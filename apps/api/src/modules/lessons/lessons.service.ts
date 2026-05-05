@@ -106,6 +106,32 @@ export class LessonsService {
       });
     }
 
+    // Update streak on lesson completion (no exerciseId = whole-lesson submission)
+    if (!data.exerciseId && data.answer?.completed) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const existing = await this.prisma.streakRecord.findUnique({
+        where: { userId_date: { userId, date: today } },
+      });
+      if (!existing) {
+        await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yest = await this.prisma.streakRecord.findUnique({
+          where: { userId_date: { userId, date: yesterday } },
+        });
+        const freshUser = await this.prisma.user.findUnique({ where: { id: userId } });
+        const newStreak = yest ? (freshUser?.currentStreak || 0) + 1 : 1;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            currentStreak: newStreak,
+            longestStreak: { set: Math.max(freshUser?.longestStreak || 0, newStreak) },
+          },
+        });
+      }
+    }
+
     return { attempt, isCorrect, score, xpEarned };
   }
 

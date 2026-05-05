@@ -115,7 +115,7 @@ export default function DashboardPage() {
     staleTime: 30_000,
   });
 
-  const weeklyXP = stats?.weeklyXP?.map((w: any) => w._sum?.xpEarned || 0) || [20, 45, 30, 60, 80, 25, 90];
+  const weeklyXP: number[] = Array.isArray(stats?.weeklyXP) ? stats.weeklyXP : [20, 45, 30, 60, 80, 25, 90];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Hyvää huomenta' : hour < 18 ? 'Hyvää päivää' : 'Hyvää iltaa';
 
