@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
 
 @Injectable()
 export class LessonsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private leaderboard: LeaderboardService) {}
 
   async getCourses(level?: string) {
     return this.prisma.course.findMany({
@@ -100,10 +101,13 @@ export class LessonsService {
     });
 
     if (xpEarned > 0) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
-      });
+      await Promise.all([
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
+        }),
+        this.leaderboard.addXP(userId, xpEarned),
+      ]);
     }
 
     // Update streak on lesson completion (no exerciseId = whole-lesson submission)

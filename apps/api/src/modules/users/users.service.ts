@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private leaderboard: LeaderboardService) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -93,19 +94,22 @@ export class UsersService {
 
   async awardXP(userId: string, xpEarned: number, source?: string) {
     if (xpEarned <= 0) return { xpEarned: 0 };
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
-    });
-    await this.prisma.attempt.create({
-      data: {
-        userId,
-        answer: { source: source || 'activity' },
-        isCorrect: true,
-        score: xpEarned,
-        xpEarned,
-      },
-    });
+    await Promise.all([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
+      }),
+      this.prisma.attempt.create({
+        data: {
+          userId,
+          answer: { source: source || 'activity' },
+          isCorrect: true,
+          score: xpEarned,
+          xpEarned,
+        },
+      }),
+      this.leaderboard.addXP(userId, xpEarned),
+    ]);
     return { xpEarned };
   }
 

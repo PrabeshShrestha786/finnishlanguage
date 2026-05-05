@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef } from 'react';
 import { PenTool, Send, Sparkles, CheckCircle2, AlertCircle, RotateCcw, Clock, Star, BookOpen, Lightbulb } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 const PROMPTS = [
   {
@@ -66,6 +67,7 @@ interface Feedback {
 }
 
 export default function WritingPage() {
+  const { user, updateUser } = useAuthStore();
   const [selectedPrompt, setSelectedPrompt] = useState<typeof PROMPTS[0] | null>(null);
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -81,23 +83,32 @@ export default function WritingPage() {
       const res = await api.post('/ai/grammar/correct', { text });
       const raw = res.data?.data;
       if (raw) {
-        setFeedback({
+        const fb = {
           correctedText: raw.correctedText || text,
           mistakes: raw.mistakes || [],
           score: raw.score || 85,
           tip: raw.tip || 'Keep practicing! Your Finnish is improving.',
-        });
+        };
+        setFeedback(fb);
+        if (fb.score >= 70 && selectedPrompt) {
+          updateUser({ totalXP: (user?.totalXP || 0) + selectedPrompt.xp });
+          api.post('/users/xp', { xpEarned: selectedPrompt.xp, source: 'writing' }).catch(() => {});
+        }
       }
     } catch {
-      // Fallback mock feedback for demo
-      setFeedback({
+      const fallback = {
         correctedText: text,
         mistakes: [
           { original: 'minä olen', correction: 'Minä olen', explanation: 'Start sentences with a capital letter.' },
         ],
         score: Math.min(95, 60 + Math.floor(wordCount / 2)),
         tip: 'Great effort! Pay attention to capitalization and vowel harmony.',
-      });
+      };
+      setFeedback(fallback);
+      if (fallback.score >= 70 && selectedPrompt) {
+        updateUser({ totalXP: (user?.totalXP || 0) + selectedPrompt.xp });
+        api.post('/users/xp', { xpEarned: selectedPrompt.xp, source: 'writing' }).catch(() => {});
+      }
     } finally {
       setLoading(false);
     }

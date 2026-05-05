@@ -84,7 +84,7 @@ export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
   const lessonId = params?.id as string;
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, refreshUser } = useAuthStore();
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -116,6 +116,8 @@ export default function LessonPage() {
       setTotalXpEarned((prev) => prev + earned);
       updateUser({ totalXP: (user?.totalXP || 0) + totalXpEarned + earned });
       setCompleted(true);
+      // Refresh user so streak + XP in header reflect DB values
+      refreshUser();
     },
   });
 

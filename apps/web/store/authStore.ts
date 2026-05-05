@@ -30,6 +30,7 @@ interface AuthState {
   initAuth: () => Promise<void>;
   loginWithTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   updateUser: (data: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -93,6 +94,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateUser: (data) => set((state) => ({ user: state.user ? { ...state.user, ...data } : null })),
+
+      refreshUser: async () => {
+        try {
+          const res = await api.get('/auth/me');
+          set({ user: res.data.data });
+        } catch {}
+      },
     }),
     {
       name: 'finnmate-auth',
