@@ -9,6 +9,7 @@ import {
   User, Mail, Globe, GraduationCap, Camera, Save, Flame,
   Zap, Trophy, BookOpen, CheckCircle2, Settings, Bell, Shield, LogOut,
 } from 'lucide-react';
+import Image from 'next/image';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const LANGUAGES = [
@@ -75,7 +76,7 @@ export default function ProfilePage() {
             <div className="relative">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-2xl overflow-hidden">
                 {user?.avatar ? (
-                  <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                  <Image src={user.avatar} alt="" fill className="object-cover" />
                 ) : (
                   user?.firstName?.[0] || 'U'
                 )}

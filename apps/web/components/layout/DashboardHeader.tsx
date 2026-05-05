@@ -2,6 +2,7 @@
 
 import { Bell, Flame, Zap } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
 import { usePathname } from 'next/navigation';
 
@@ -56,7 +57,7 @@ export default function DashboardHeader() {
       {/* Avatar */}
       <Link href="/profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden hover:shadow-md transition-all">
         {user?.avatar ? (
-          <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+          <Image src={user.avatar} alt="" fill className="object-cover" />
         ) : (
           user?.firstName?.[0] || 'U'
         )}

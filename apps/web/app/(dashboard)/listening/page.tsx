@@ -285,7 +285,7 @@ export default function ListeningPage() {
             </div>
             <div className="mt-4 p-4 bg-violet-50 border border-violet-100 rounded-xl text-sm text-violet-700 flex items-center gap-2">
               <Volume2 className="w-4 h-4 flex-shrink-0" />
-              Audio uses your device's text-to-speech. Make sure your volume is on and Finnish language is installed for best results.
+              Audio uses your device&apos;s text-to-speech. Make sure your volume is on and Finnish language is installed for best results.
             </div>
           </motion.div>
         )}

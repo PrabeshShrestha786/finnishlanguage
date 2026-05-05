@@ -90,9 +90,9 @@ function FlashCard({ word, onKnow, onStudyMore, index, total }: {
             <div className="text-3xl font-black text-slate-800 mb-2">{word.english}</div>
             {word.exampleSentence && (
               <div className="text-center mt-3">
-                <p className="text-slate-600 text-sm italic">"{word.exampleSentence}"</p>
+                <p className="text-slate-600 text-sm italic">&ldquo;{word.exampleSentence}&rdquo;</p>
                 {word.exampleTranslation && (
-                  <p className="text-slate-400 text-xs mt-1">"{word.exampleTranslation}"</p>
+                  <p className="text-slate-400 text-xs mt-1">&ldquo;{word.exampleTranslation}&rdquo;</p>
                 )}
               </div>
             )}

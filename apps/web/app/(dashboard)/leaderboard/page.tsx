@@ -7,7 +7,9 @@ import { Trophy, Flame, Zap, Crown, Medal, Star, TrendingUp, Users } from 'lucid
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-const MOCK_LEADERS = [
+type LeaderEntry = { rank: number; name: string; flag: string; xp: number; streak: number; level: string; badge: string };
+
+const MOCK_LEADERS: LeaderEntry[] = [
   { rank: 1,  name: 'Antti_FI',       flag: '🇫🇮', xp: 4820, streak: 67, level: 'B2', badge: '🏆' },
   { rank: 2,  name: 'PriyaLearns',    flag: '🇮🇳', xp: 4540, streak: 42, level: 'B1', badge: '🥈' },
   { rank: 3,  name: 'YukiSuomi',      flag: '🇯🇵', xp: 4230, streak: 38, level: 'B1', badge: '🥉' },
@@ -120,7 +122,7 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {leaders.slice(0, 10).map((entry, i) => {
+        {leaders.slice(0, 10).map((entry: LeaderEntry, i: number) => {
           const isUser = entry.rank === userRank;
           return (
             <motion.div
