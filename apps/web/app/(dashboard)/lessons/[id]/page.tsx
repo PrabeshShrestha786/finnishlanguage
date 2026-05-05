@@ -9,7 +9,18 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 type InfoSlide = { kind: 'info'; word?: string; translation?: string; content?: string };
-type QuizSlide = { kind: 'quiz'; exerciseId: string; question: string; options: string[]; correctIndex: number; explanation?: string; points: number };
+type QuizSlide = {
+  kind: 'quiz';
+  exerciseId: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  correctText?: string;
+  hint?: string;
+  fillBlank?: boolean;
+  explanation?: string;
+  points: number;
+};
 type Slide = InfoSlide | QuizSlide;
 
 function buildSlides(lesson: any): Slide[] {
@@ -35,15 +46,34 @@ function buildSlides(lesson: any): Slide[] {
         points: ex.points,
       });
     } else if (ex.type === 'FILL_BLANK') {
-      slides.push({
-        kind: 'quiz',
-        exerciseId: ex.id,
-        question: ex.question,
-        options: [],
-        correctIndex: 0,
-        explanation: ex.explanation,
-        points: ex.points,
-      });
+      const choices: string[] = ex.options?.choices || [];
+      if (choices.length > 0) {
+        // Has word-bank choices — render like MCQ
+        slides.push({
+          kind: 'quiz',
+          exerciseId: ex.id,
+          question: ex.question,
+          options: choices,
+          correctIndex: ex.correctAnswer?.index ?? 0,
+          correctText: ex.correctAnswer?.value,
+          explanation: ex.explanation,
+          points: ex.points,
+        });
+      } else {
+        // Free-text answer
+        slides.push({
+          kind: 'quiz',
+          exerciseId: ex.id,
+          question: ex.question,
+          options: [],
+          correctIndex: 0,
+          correctText: ex.correctAnswer?.value,
+          hint: ex.options?.hint,
+          fillBlank: true,
+          explanation: ex.explanation,
+          points: ex.points,
+        });
+      }
     }
   }
 
@@ -58,6 +88,8 @@ export default function LessonPage() {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  const [textInput, setTextInput] = useState('');
+  const [textSubmitted, setTextSubmitted] = useState(false);
   const [results, setResults] = useState<{ correct: boolean; xpEarned: number }[]>([]);
   const [completed, setCompleted] = useState(false);
   const [totalXpEarned, setTotalXpEarned] = useState(0);
@@ -111,6 +143,22 @@ export default function LessonPage() {
   const correctCount = results.filter((r) => r.correct).length;
   const score = quizSlides.length > 0 ? Math.round((correctCount / quizSlides.length) * 100) : 100;
 
+  const advanceSlide = (isCorrect: boolean, xpEarned: number, newResults: { correct: boolean; xpEarned: number }[]) => {
+    setTimeout(() => {
+      if (isLast) {
+        const finalScore = quizSlides.length > 0
+          ? Math.round((newResults.filter((r) => r.correct).length / quizSlides.length) * 100)
+          : 100;
+        completeMutation.mutate(finalScore);
+      } else {
+        setCurrentSlide((s) => s + 1);
+        setSelected(null);
+        setTextInput('');
+        setTextSubmitted(false);
+      }
+    }, 1200);
+  };
+
   const handleAnswer = async (idx: number) => {
     if (selected !== null || slide.kind !== 'quiz') return;
     setSelected(idx);
@@ -130,19 +178,32 @@ export default function LessonPage() {
       }
     } catch {}
 
-    setResults((prev) => [...prev, { correct: isCorrect, xpEarned }]);
+    const newResults = [...results, { correct: isCorrect, xpEarned }];
+    setResults(newResults);
+    advanceSlide(isCorrect, xpEarned, newResults);
+  };
 
-    setTimeout(() => {
-      if (isLast) {
-        const finalScore = quizSlides.length > 0
-          ? Math.round(([...results, { correct: isCorrect, xpEarned }].filter((r) => r.correct).length / quizSlides.length) * 100)
-          : 100;
-        completeMutation.mutate(finalScore);
-      } else {
-        setCurrentSlide((s) => s + 1);
-        setSelected(null);
+  const handleTextSubmit = async () => {
+    if (textSubmitted || slide.kind !== 'quiz') return;
+    const quizSlide = slide as QuizSlide;
+    const isCorrect = textInput.trim().toLowerCase() === (quizSlide.correctText || '').toLowerCase();
+    const answer = { value: textInput.trim() };
+    const timeSpentSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    setTextSubmitted(true);
+
+    let xpEarned = 0;
+    try {
+      const res = await attemptMutation.mutateAsync({ exerciseId: quizSlide.exerciseId, answer, timeSpentSec });
+      xpEarned = res?.xpEarned || 0;
+      if (xpEarned > 0) {
+        setTotalXpEarned((prev) => prev + xpEarned);
+        updateUser({ totalXP: (user?.totalXP || 0) + xpEarned });
       }
-    }, 1200);
+    } catch {}
+
+    const newResults = [...results, { correct: isCorrect, xpEarned }];
+    setResults(newResults);
+    advanceSlide(isCorrect, xpEarned, newResults);
   };
 
   const next = () => {
@@ -151,12 +212,16 @@ export default function LessonPage() {
     } else {
       setCurrentSlide((s) => s + 1);
       setSelected(null);
+      setTextInput('');
+      setTextSubmitted(false);
     }
   };
 
   const restart = () => {
     setCurrentSlide(0);
     setSelected(null);
+    setTextInput('');
+    setTextSubmitted(false);
     setResults([]);
     setCompleted(false);
     setTotalXpEarned(0);
@@ -239,42 +304,95 @@ export default function LessonPage() {
           {slide.kind === 'quiz' && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
               <div className="text-center">
-                <div className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">Quiz</div>
+                <div className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">
+                  {slide.fillBlank ? 'Fill in the Blank' : 'Quiz'}
+                </div>
                 <h3 className="text-slate-800 font-bold text-xl">{slide.question}</h3>
               </div>
-              <div className="space-y-2.5">
-                {slide.options.map((opt, idx) => {
-                  const isCorrect = idx === slide.correctIndex;
-                  const isSelected = selected === idx;
-                  return (
-                    <motion.button key={idx} whileHover={selected === null ? { x: 4 } : {}}
-                      whileTap={selected === null ? { scale: 0.99 } : {}}
-                      onClick={() => handleAnswer(idx)}
-                      className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
-                        selected === null
-                          ? 'border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700'
-                          : isSelected && isCorrect ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                          : isSelected && !isCorrect ? 'border-red-400 bg-red-50 text-red-700'
-                          : isCorrect ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-400'
-                      }`}>
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                        selected === null ? 'bg-slate-100 text-slate-500'
-                        : isSelected && isCorrect ? 'bg-emerald-400 text-white'
-                        : isSelected && !isCorrect ? 'bg-red-400 text-white'
-                        : isCorrect ? 'bg-emerald-400 text-white'
-                        : 'bg-slate-100 text-slate-400'
-                      }`}>
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                      <span className="font-medium">{opt}</span>
-                      {selected !== null && isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
-                      {selected !== null && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-red-500 ml-auto" />}
-                    </motion.button>
-                  );
-                })}
-              </div>
-              {selected !== null && slide.explanation && (
+
+              {/* Fill-in-the-blank text input */}
+              {slide.fillBlank ? (
+                <div className="space-y-3">
+                  {slide.hint && !textSubmitted && (
+                    <p className="text-slate-400 text-xs text-center italic">{slide.hint}</p>
+                  )}
+                  <div className={`flex gap-2 rounded-xl border-2 p-1 transition-all ${
+                    !textSubmitted ? 'border-slate-200 focus-within:border-blue-400'
+                    : textInput.trim().toLowerCase() === (slide.correctText || '').toLowerCase()
+                      ? 'border-emerald-400 bg-emerald-50'
+                      : 'border-red-400 bg-red-50'
+                  }`}>
+                    <input
+                      type="text"
+                      value={textInput}
+                      onChange={(e) => setTextInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !textSubmitted && textInput.trim() && handleTextSubmit()}
+                      disabled={textSubmitted}
+                      placeholder="Type your answer…"
+                      className="flex-1 px-3 py-3 text-slate-800 font-semibold bg-transparent outline-none placeholder:text-slate-300 text-base"
+                      autoFocus
+                    />
+                    {!textSubmitted ? (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                        onClick={handleTextSubmit}
+                        disabled={!textInput.trim()}
+                        className="px-5 py-2 rounded-lg bg-blue-600 text-white font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Check
+                      </motion.button>
+                    ) : (
+                      <div className="flex items-center px-3">
+                        {textInput.trim().toLowerCase() === (slide.correctText || '').toLowerCase()
+                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                          : <XCircle className="w-6 h-6 text-red-500" />}
+                      </div>
+                    )}
+                  </div>
+                  {textSubmitted && textInput.trim().toLowerCase() !== (slide.correctText || '').toLowerCase() && (
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                      className="text-center text-sm text-emerald-700 font-semibold">
+                      Correct answer: <span className="font-black">{slide.correctText}</span>
+                    </motion.div>
+                  )}
+                </div>
+              ) : (
+                /* Multiple-choice options */
+                <div className="space-y-2.5">
+                  {slide.options.map((opt, idx) => {
+                    const isCorrect = idx === slide.correctIndex;
+                    const isSelected = selected === idx;
+                    return (
+                      <motion.button key={idx} whileHover={selected === null ? { x: 4 } : {}}
+                        whileTap={selected === null ? { scale: 0.99 } : {}}
+                        onClick={() => handleAnswer(idx)}
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+                          selected === null
+                            ? 'border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700'
+                            : isSelected && isCorrect ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                            : isSelected && !isCorrect ? 'border-red-400 bg-red-50 text-red-700'
+                            : isCorrect ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                        }`}>
+                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                          selected === null ? 'bg-slate-100 text-slate-500'
+                          : isSelected && isCorrect ? 'bg-emerald-400 text-white'
+                          : isSelected && !isCorrect ? 'bg-red-400 text-white'
+                          : isCorrect ? 'bg-emerald-400 text-white'
+                          : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span className="font-medium">{opt}</span>
+                        {selected !== null && isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
+                        {selected !== null && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-red-500 ml-auto" />}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {(selected !== null || textSubmitted) && slide.explanation && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-700">
                   {slide.explanation}
