@@ -12,7 +12,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
     cors: {
-      origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      origin: [
+        'http://localhost:3000',
+        process.env.NEXT_PUBLIC_APP_URL || '',
+      ].filter(Boolean),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
