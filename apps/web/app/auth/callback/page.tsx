@@ -3,12 +3,11 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/lib/api';
 
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { initAuth } = useAuthStore();
+  const { loginWithTokens } = useAuthStore();
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -19,14 +18,10 @@ function CallbackHandler() {
       return;
     }
 
-    const stored = { state: { accessToken: token, refreshToken: refresh || null } };
-    localStorage.setItem('finnmate-auth', JSON.stringify(stored));
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    initAuth().then(() => {
-      router.replace('/dashboard');
-    });
-  }, [searchParams, router, initAuth]);
+    loginWithTokens(token, refresh || '')
+      .then(() => router.replace('/dashboard'))
+      .catch(() => router.replace('/login?error=oauth_failed'));
+  }, [searchParams, router, loginWithTokens]);
 
   return null;
 }

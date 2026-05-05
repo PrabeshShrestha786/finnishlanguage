@@ -28,6 +28,7 @@ interface AuthState {
   register: (data: any) => Promise<void>;
   logout: () => void;
   initAuth: () => Promise<void>;
+  loginWithTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   updateUser: (data: Partial<User>) => void;
 }
 
@@ -82,6 +83,13 @@ export const useAuthStore = create<AuthState>()(
             set({ user: null, accessToken: null, initialized: true });
           }
         }
+      },
+
+      loginWithTokens: async (accessToken, refreshToken) => {
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+        set({ accessToken, refreshToken });
+        const res = await api.get('/auth/me');
+        set({ user: res.data.data, initialized: true });
       },
 
       updateUser: (data) => set((state) => ({ user: state.user ? { ...state.user, ...data } : null })),
