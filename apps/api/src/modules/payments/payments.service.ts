@@ -3,12 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 
-const PLAN_PRICES: Record<string, { name: string; xp: string }> = {
-  PRO: { name: 'FinnMate Pro', xp: 'price_pro' },
-  PREMIUM: { name: 'FinnMate Premium', xp: 'price_premium' },
-  TEAM: { name: 'FinnMate Team', xp: 'price_team' },
-};
-
 @Injectable()
 export class PaymentsService {
   private stripe: Stripe;
@@ -40,18 +34,18 @@ export class PaymentsService {
         metadata: { userId },
       });
       customerId = customer.id;
-      await this.prisma.subscription.update({
+      await this.prisma.subscription.upsert({
         where: { userId },
-        data: { stripeCustomerId: customerId },
+        create: { userId, stripeCustomerId: customerId },
+        update: { stripeCustomerId: customerId },
       });
     }
 
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'subscription',
+      mode: 'payment',
       payment_method_types: ['card'],
       line_items: [{ price: priceIdMap[plan], quantity: 1 }],
-      subscription_data: { trial_period_days: 7 },
       success_url: `${this.config.get('app.url')}/dashboard?upgraded=true`,
       cancel_url: `${this.config.get('app.url')}/pricing?canceled=true`,
       metadata: { userId, plan },
@@ -72,40 +66,26 @@ export class PaymentsService {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        if (session.metadata?.userId && session.metadata?.plan) {
-          await this.prisma.subscription.update({
-            where: { userId: session.metadata.userId },
-            data: {
-              plan: session.metadata.plan as any,
-              status: 'ACTIVE',
-              stripeSubscriptionId: session.subscription as string,
-            },
-          });
-        }
-        break;
-      }
-      case 'customer.subscription.updated': {
-        const sub = event.data.object as Stripe.Subscription;
-        await this.prisma.subscription.updateMany({
-          where: { stripeSubscriptionId: sub.id },
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.payment_status === 'paid' && session.metadata?.userId && session.metadata?.plan) {
+        const { userId, plan } = session.metadata;
+        await this.prisma.subscription.upsert({
+          where: { userId },
+          create: { userId, plan: plan as any, status: 'ACTIVE' },
+          update: { plan: plan as any, status: 'ACTIVE' },
+        });
+        await this.prisma.payment.create({
           data: {
-            status: sub.status.toUpperCase() as any,
-            currentPeriodStart: new Date(sub.current_period_start * 1000),
-            currentPeriodEnd: new Date(sub.current_period_end * 1000),
+            userId,
+            amount: (session.amount_total || 0) / 100,
+            currency: session.currency?.toUpperCase() || 'EUR',
+            status: 'COMPLETED',
+            provider: 'STRIPE',
+            providerPaymentId: session.payment_intent as string,
+            description: `FinnMate ${plan} plan`,
           },
         });
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        const sub = event.data.object as Stripe.Subscription;
-        await this.prisma.subscription.updateMany({
-          where: { stripeSubscriptionId: sub.id },
-          data: { plan: 'FREE', status: 'CANCELED', canceledAt: new Date() },
-        });
-        break;
       }
     }
 
@@ -114,16 +94,6 @@ export class PaymentsService {
 
   async getSubscription(userId: string) {
     return this.prisma.subscription.findUnique({ where: { userId } });
-  }
-
-  async cancelSubscription(userId: string) {
-    const sub = await this.prisma.subscription.findUnique({ where: { userId } });
-    if (!sub?.stripeSubscriptionId) throw new BadRequestException('No active subscription');
-
-    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
-    return { message: 'Subscription will cancel at period end' };
   }
 
   async applyCoupon(userId: string, code: string) {

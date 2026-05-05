@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, Delete, Body, Headers,
+  Controller, Post, Get, Body, Headers,
   UseGuards, Request, RawBodyRequest, Req, HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -32,13 +32,6 @@ export class PaymentsController {
   @ApiBearerAuth()
   getSubscription(@Request() req: any) {
     return this.paymentsService.getSubscription(req.user.sub);
-  }
-
-  @Delete('subscription')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  cancelSubscription(@Request() req: any) {
-    return this.paymentsService.cancelSubscription(req.user.sub);
   }
 
   @Post('coupon/apply')
