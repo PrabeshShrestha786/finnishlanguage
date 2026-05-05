@@ -8,7 +8,19 @@ export class LessonsService {
   async getCourses(level?: string) {
     return this.prisma.course.findMany({
       where: { isPublished: true, ...(level && { level: level as any }) },
-      include: { modules: { include: { _count: { select: { lessons: true } } } } },
+      include: {
+        modules: {
+          where: { isPublished: true },
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              where: { isPublished: true },
+              orderBy: { order: 'asc' },
+              select: { id: true, title: true, xpReward: true, estimatedMinutes: true, isFree: true, level: true, type: true },
+            },
+          },
+        },
+      },
       orderBy: { order: 'asc' },
     });
   }
