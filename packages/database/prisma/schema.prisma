@@ -175,6 +175,7 @@ model User {
   studyPlans        StudyPlan[]
   writingSubmissions WritingSubmission[]
   speakingAttempts  SpeakingAttempt[]
+  userStories       UserStory[]
 
   @@index([email])
   @@index([username])
@@ -638,6 +639,27 @@ model AdminLog {
 
   @@index([adminId])
   @@index([createdAt])
+}
+
+// ─── USER STORY (AI-generated reading stories saved by user) ─────────────────
+
+model UserStory {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  titleEn   String       @default("")
+  level     FinnishLevel
+  category  String       @default("AI Generated")
+  color     String       @default("from-violet-500 to-purple-600")
+  text      String
+  vocab     Json
+  questions Json
+  xp        Int          @default(40)
+  createdAt DateTime     @default(now())
+
+  @@index([userId])
+  @@index([userId, level])
 }
 
 // ─── AUDIO FILES ──────────────────────────────────────────────────────────────

@@ -382,4 +382,38 @@ Respond ONLY with valid JSON: { "exercises": [{"question":"","options":[],"corre
       take: limit,
     });
   }
+
+  async getUserStories(userId: string) {
+    return this.prisma.userStory.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async saveUserStory(userId: string, story: {
+    title: string; titleEn: string; level: string; category: string;
+    color: string; text: string; vocab: any; questions: any; xp: number;
+  }) {
+    return this.prisma.userStory.create({
+      data: {
+        userId,
+        title: story.title,
+        titleEn: story.titleEn || '',
+        level: story.level as any,
+        category: story.category || 'AI Generated',
+        color: story.color,
+        text: story.text,
+        vocab: story.vocab,
+        questions: story.questions,
+        xp: story.xp || 40,
+      },
+    });
+  }
+
+  async deleteUserStory(userId: string, storyId: string) {
+    const story = await this.prisma.userStory.findFirst({ where: { id: storyId, userId } });
+    if (!story) throw new Error('Story not found');
+    await this.prisma.userStory.delete({ where: { id: storyId } });
+    return { deleted: true };
+  }
 }

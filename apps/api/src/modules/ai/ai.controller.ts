@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, Body, UseGuards, Request,
+  Controller, Post, Get, Delete, Body, Param, UseGuards, Request,
   UploadedFile, UseInterceptors, Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -67,5 +67,23 @@ export class AiController {
   @ApiOperation({ summary: 'Generate an AI reading story with comprehension questions' })
   generateReading(@Body() body: { level: string; topic?: string }) {
     return this.aiService.generateReadingStory(body.level, body.topic);
+  }
+
+  @Get('stories')
+  @ApiOperation({ summary: 'Get all saved AI stories for the current user' })
+  getUserStories(@Request() req: any) {
+    return this.aiService.getUserStories(req.user.sub);
+  }
+
+  @Post('stories')
+  @ApiOperation({ summary: 'Save an AI-generated story to the user library' })
+  saveUserStory(@Body() body: any, @Request() req: any) {
+    return this.aiService.saveUserStory(req.user.sub, body);
+  }
+
+  @Delete('stories/:id')
+  @ApiOperation({ summary: 'Delete a saved story from the user library' })
+  deleteUserStory(@Param('id') id: string, @Request() req: any) {
+    return this.aiService.deleteUserStory(req.user.sub, id);
   }
 }

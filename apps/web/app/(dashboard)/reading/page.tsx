@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers, Sparkles, Loader2, X, ChevronDown } from 'lucide-react';
+import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers, Sparkles, Loader2, X, ChevronDown, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -515,7 +515,20 @@ const AI_COLORS = [
   'from-teal-400 to-cyan-500',
 ];
 
-type AnyStory = (typeof STORIES)[0];
+interface AnyStory {
+  id: string | number;
+  dbId?: string;
+  title: string;
+  titleEn: string;
+  level: string;
+  duration: string;
+  xp: number;
+  color: string;
+  category: string;
+  text: string;
+  vocab: string[];
+  questions: { q: string; options: string[]; correct: number }[];
+}
 type ViewState = 'list' | 'reading' | 'quiz' | 'result';
 
 export default function ReadingPage() {
@@ -527,12 +540,13 @@ export default function ReadingPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
   const [showPassage, setShowPassage] = useState(false);
-  const [completedStories, setCompletedStories] = useState<Record<number, { score: number; pct: number }>>({});
+  const [completedStories, setCompletedStories] = useState<Record<string | number, { score: number; pct: number }>>({});
   const [tooltip, setTooltip] = useState<{ word: string; translation: string | null; x: number; y: number } | null>(null);
   const [translating, setTranslating] = useState(false);
 
   // AI generation state
   const [aiStories, setAiStories] = useState<AnyStory[]>([]);
+  const [aiLoading, setAiLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showGenPanel, setShowGenPanel] = useState(false);
   const [genLevel, setGenLevel] = useState<string>(user?.finnishLevel || 'A1');
@@ -543,6 +557,29 @@ export default function ReadingPage() {
       const saved = localStorage.getItem('finnmate-reading-history');
       if (saved) setCompletedStories(JSON.parse(saved));
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    api.get('/ai/stories')
+      .then((res) => {
+        const stories: AnyStory[] = (res.data || []).map((s: any) => ({
+          id: s.id,
+          dbId: s.id,
+          title: s.title,
+          titleEn: s.titleEn,
+          level: s.level,
+          duration: '~5 min',
+          xp: s.xp,
+          color: s.color,
+          category: s.category,
+          text: s.text,
+          vocab: s.vocab as string[],
+          questions: s.questions as { q: string; options: string[]; correct: number }[],
+        }));
+        setAiStories(stories);
+      })
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
   }, []);
 
   useEffect(() => {
@@ -559,14 +596,14 @@ export default function ReadingPage() {
       const res = await api.post('/ai/reading/generate', { level: genLevel, topic: genTopic || undefined });
       const raw = res.data.data;
       if (!raw?.title || !raw?.text) throw new Error('Invalid response');
-      const newStory: AnyStory = {
-        id: Date.now(),
+      const color = AI_COLORS[aiStories.length % AI_COLORS.length];
+      const storyPayload = {
         title: raw.title,
         titleEn: raw.titleEn || '',
         level: genLevel,
         duration: '~5 min',
         xp: 40,
-        color: AI_COLORS[aiStories.length % AI_COLORS.length],
+        color,
         category: raw.category || 'AI Generated',
         text: raw.text,
         vocab: raw.vocab || [],
@@ -576,8 +613,12 @@ export default function ReadingPage() {
           correct: q.correct,
         })),
       };
+      // Persist to backend — get back the DB id
+      const saved = await api.post('/ai/stories', storyPayload);
+      const dbId: string = saved.data.id;
+      const newStory: AnyStory = { ...storyPayload, id: dbId, dbId };
       setAiStories((prev) => [newStory, ...prev]);
-      toast.success('Story generated! 🇫🇮', { id: toastId });
+      toast.success('Story saved to your library! 🇫🇮', { id: toastId });
       setGenTopic('');
     } catch {
       toast.error('Failed to generate story. Try again.', { id: toastId });
@@ -603,11 +644,23 @@ export default function ReadingPage() {
     }
   }, []);
 
-  const baseStories = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
-  const filteredAi = filter === 'All' ? aiStories : aiStories.filter((s) => s.level === filter);
-  const filtered = [...filteredAi, ...baseStories];
+  const deleteStory = async (story: AnyStory, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!story.dbId) return;
+    try {
+      await api.delete(`/ai/stories/${story.dbId}`);
+      setAiStories((prev) => prev.filter((s) => s.dbId !== story.dbId));
+      toast.success('Story deleted');
+    } catch {
+      toast.error('Failed to delete story');
+    }
+  };
 
-  const startStory = (story: typeof STORIES[0]) => {
+  const baseStories: AnyStory[] = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
+  const filteredAi = filter === 'All' ? aiStories : aiStories.filter((s) => s.level === filter);
+  const filtered: AnyStory[] = [...filteredAi, ...baseStories];
+
+  const startStory = (story: AnyStory) => {
     setSelectedStory(story);
     setView('reading');
     setCurrentQ(0);
@@ -713,7 +766,7 @@ export default function ReadingPage() {
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-2">
             <BookOpen className="w-4 h-4 text-cyan-600" />
-            <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories</span>
+            <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories{aiStories.length > 0 ? ` · ${aiStories.length} saved` : ''}</span>
           </div>
           <motion.button
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -784,7 +837,7 @@ export default function ReadingPage() {
                 </motion.button>
               </div>
             </div>
-            <p className="text-xs text-slate-400 mt-3">Stories are generated fresh each time. Each AI story gives +40 XP on completion.</p>
+            <p className="text-xs text-slate-400 mt-3">Stories are saved to your library and persist across sessions. Each AI story gives +40 XP on completion.</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -810,12 +863,17 @@ export default function ReadingPage() {
               ))}
             </div>
 
+            {aiLoading && (
+              <div className="flex items-center gap-2 text-slate-400 text-sm mb-4">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading your library…
+              </div>
+            )}
             <div className="grid md:grid-cols-2 gap-4">
               {filtered.map((story, i) => {
-                const isAi = aiStories.some((s) => s.id === story.id);
+                const isAi = !!story.dbId;
                 return (
                 <motion.div
-                  key={story.id}
+                  key={String(story.id)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
@@ -826,7 +884,7 @@ export default function ReadingPage() {
                   <div className={`h-2 bg-gradient-to-r ${story.color}`} />
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[story.level]}`}>{story.level}</span>
                           <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{story.category}</span>
@@ -844,8 +902,19 @@ export default function ReadingPage() {
                         <h3 className="text-slate-800 font-black text-base">{story.title}</h3>
                         <p className="text-slate-500 text-xs">{story.titleEn}</p>
                       </div>
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${story.color} flex items-center justify-center shadow-sm`}>
-                        <BookOpen className="w-5 h-5 text-white" />
+                      <div className="flex items-center gap-2 ml-3 shrink-0">
+                        {isAi && (
+                          <button
+                            onClick={(e) => deleteStory(story, e)}
+                            title="Delete story"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${story.color} flex items-center justify-center shadow-sm`}>
+                          <BookOpen className="w-5 h-5 text-white" />
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-400">
