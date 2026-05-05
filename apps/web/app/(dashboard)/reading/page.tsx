@@ -562,7 +562,7 @@ export default function ReadingPage() {
   useEffect(() => {
     api.get('/ai/stories')
       .then((res) => {
-        const stories: AnyStory[] = (res.data || []).map((s: any) => ({
+        const stories: AnyStory[] = (res.data?.data || []).map((s: any) => ({
           id: s.id,
           dbId: s.id,
           title: s.title,
@@ -622,10 +622,12 @@ export default function ReadingPage() {
       // Persist to backend — swap temp id for DB id on success
       api.post('/ai/stories', storyPayload)
         .then((saved) => {
-          const dbId: string = saved.data.id;
-          setAiStories((prev) =>
-            prev.map((s) => s.id === tempId ? { ...s, id: dbId, dbId } : s)
-          );
+          const dbId: string = saved.data?.data?.id;
+          if (dbId) {
+            setAiStories((prev) =>
+              prev.map((s) => s.id === tempId ? { ...s, id: dbId, dbId } : s)
+            );
+          }
         })
         .catch(() => {/* story still visible for this session */});
     } catch {

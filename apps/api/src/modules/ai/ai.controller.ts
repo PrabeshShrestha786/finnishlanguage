@@ -1,6 +1,6 @@
 import {
   Controller, Post, Get, Delete, Body, Param, UseGuards, Request,
-  UploadedFile, UseInterceptors, Query,
+  UploadedFile, UseInterceptors, Query, UsePipes, ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
@@ -76,6 +76,7 @@ export class AiController {
   }
 
   @Post('stories')
+  @UsePipes(new ValidationPipe({ whitelist: false }))
   @ApiOperation({ summary: 'Save an AI-generated story to the user library' })
   saveUserStory(@Body() body: any, @Request() req: any) {
     return this.aiService.saveUserStory(req.user.sub, body);
