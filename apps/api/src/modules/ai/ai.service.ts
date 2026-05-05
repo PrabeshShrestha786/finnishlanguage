@@ -170,6 +170,41 @@ Respond ONLY with valid JSON:
     return JSON.parse(completion.choices[0].message.content || '{}');
   }
 
+  async generateReadingStory(level: string, topic?: string) {
+    const topicLine = topic ? `Topic: "${topic}".` : 'Pick an interesting everyday Finnish topic (e.g. seasons, food, Helsinki, nature, work, family, hobbies).';
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You generate Finnish reading practice stories for language learners.
+CEFR level: ${level}. ${topicLine}
+Write vocabulary, sentences, and grammar strictly appropriate for ${level}.
+
+Respond ONLY with valid JSON matching this exact schema:
+{
+  "title": "Finnish title",
+  "titleEn": "English title",
+  "category": "one of: Daily Life | Nature | Culture | Food | Travel | Work | Dialogue",
+  "text": "4-6 paragraph Finnish story, natural and engaging",
+  "vocab": ["word1 (english1)", "word2 (english2)", "word3 (english3)", "word4 (english4)", "word5 (english5)"],
+  "questions": [
+    { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 0 },
+    { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 2 },
+    { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 1 },
+    { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 3 }
+  ]
+}
+"correct" is the 0-based index of the correct option in "options".`,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.85,
+      max_tokens: 1800,
+    });
+    return JSON.parse(completion.choices[0].message.content || '{}');
+  }
+
   async generateExercises(topic: string, level: string, type: string, count = 5) {
     const completion = await this.groq.chat.completions.create({
       model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',

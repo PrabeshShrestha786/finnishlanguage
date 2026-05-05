@@ -2,9 +2,10 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers } from 'lucide-react';
+import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers, Sparkles, Loader2, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const STORIES = [
   {
@@ -111,18 +112,70 @@ const LEVEL_COLORS: Record<string, string> = {
   B2: 'bg-orange-100 text-orange-700',
 };
 
+const AI_COLORS = [
+  'from-violet-500 to-purple-600',
+  'from-pink-500 to-rose-500',
+  'from-amber-400 to-orange-500',
+  'from-teal-400 to-cyan-500',
+];
+
+type AnyStory = typeof STORIES[0];
 type ViewState = 'list' | 'reading' | 'quiz' | 'result';
 
 export default function ReadingPage() {
   const { user, updateUser } = useAuthStore();
   const [view, setView] = useState<ViewState>('list');
-  const [selectedStory, setSelectedStory] = useState<typeof STORIES[0] | null>(null);
+  const [selectedStory, setSelectedStory] = useState<AnyStory | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
 
-  const filtered = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
+  // AI generation state
+  const [aiStories, setAiStories] = useState<AnyStory[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [showGenPanel, setShowGenPanel] = useState(false);
+  const [genLevel, setGenLevel] = useState<string>(user?.finnishLevel || 'A1');
+  const [genTopic, setGenTopic] = useState('');
+
+  const generateStory = async () => {
+    setGenerating(true);
+    setShowGenPanel(false);
+    const toastId = toast.loading('Generating your story with AI...');
+    try {
+      const res = await api.post('/ai/reading/generate', { level: genLevel, topic: genTopic || undefined });
+      const raw = res.data.data;
+      if (!raw?.title || !raw?.text) throw new Error('Invalid response');
+      const newStory: AnyStory = {
+        id: Date.now(),
+        title: raw.title,
+        titleEn: raw.titleEn || '',
+        level: genLevel,
+        duration: '~5 min',
+        xp: 40,
+        color: AI_COLORS[aiStories.length % AI_COLORS.length],
+        category: raw.category || 'AI Generated',
+        text: raw.text,
+        vocab: raw.vocab || [],
+        questions: (raw.questions || []).map((q: any) => ({
+          q: q.q,
+          options: q.options,
+          correct: q.correct,
+        })),
+      };
+      setAiStories((prev) => [newStory, ...prev]);
+      toast.success('Story generated! 🇫🇮', { id: toastId });
+      setGenTopic('');
+    } catch {
+      toast.error('Failed to generate story. Try again.', { id: toastId });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const baseStories = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
+  const filteredAi = filter === 'All' ? aiStories : aiStories.filter((s) => s.level === filter);
+  const filtered = [...filteredAi, ...baseStories];
 
   const startStory = (story: typeof STORIES[0]) => {
     setSelectedStory(story);
@@ -167,11 +220,84 @@ export default function ReadingPage() {
           <h1 className="text-2xl font-black text-slate-800">Reading Practice</h1>
           <p className="text-slate-500 text-sm mt-0.5">Read Finnish texts and test your comprehension</p>
         </div>
-        <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-4 py-2">
-          <BookOpen className="w-4 h-4 text-cyan-600" />
-          <span className="text-cyan-700 text-sm font-semibold">{STORIES.length} Stories Available</span>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-2">
+            <BookOpen className="w-4 h-4 text-cyan-600" />
+            <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories</span>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => setShowGenPanel((v) => !v)}
+            disabled={generating}
+            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+          >
+            {generating
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+              : <><Sparkles className="w-4 h-4" /> Generate with AI</>
+            }
+          </motion.button>
         </div>
       </motion.div>
+
+      {/* AI Generate Panel */}
+      <AnimatePresence>
+        {showGenPanel && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            className="bg-white border border-violet-200 rounded-2xl p-5 shadow-lg"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-violet-500" />
+                <span className="font-bold text-slate-800">Generate a New Story</span>
+                <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">Powered by Groq AI</span>
+              </div>
+              <button onClick={() => setShowGenPanel(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-shrink-0">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Level</label>
+                <div className="flex gap-1.5">
+                  {['A1', 'A2', 'B1', 'B2'].map((lvl) => (
+                    <button key={lvl} onClick={() => setGenLevel(lvl)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        genLevel === lvl ? 'bg-violet-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}>
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Topic <span className="font-normal text-slate-400">(optional)</span></label>
+                <input
+                  type="text"
+                  value={genTopic}
+                  onChange={(e) => setGenTopic(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && generateStory()}
+                  placeholder="e.g. Finnish seasons, coffee culture, Helsinki trams…"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                />
+              </div>
+              <div className="flex items-end">
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={generateStory}
+                  className="btn-primary px-5 py-2 text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}
+                >
+                  <Sparkles className="w-4 h-4" /> Generate
+                </motion.button>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-3">Stories are generated fresh each time. Each AI story gives +40 XP on completion.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
 
@@ -195,14 +321,16 @@ export default function ReadingPage() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              {filtered.map((story, i) => (
+              {filtered.map((story, i) => {
+                const isAi = aiStories.some((s) => s.id === story.id);
+                return (
                 <motion.div
                   key={story.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
                   whileHover={{ y: -3 }}
-                  className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden cursor-pointer group"
+                  className={`bg-white rounded-2xl border shadow-sm overflow-hidden cursor-pointer group ${isAi ? 'border-violet-200' : 'border-slate-100'}`}
                   onClick={() => startStory(story)}
                 >
                   <div className={`h-2 bg-gradient-to-r ${story.color}`} />
@@ -212,6 +340,11 @@ export default function ReadingPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[story.level]}`}>{story.level}</span>
                           <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{story.category}</span>
+                          {isAi && (
+                            <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5" /> AI
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-slate-800 font-black text-base">{story.title}</h3>
                         <p className="text-slate-500 text-xs">{story.titleEn}</p>
@@ -237,7 +370,8 @@ export default function ReadingPage() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         )}

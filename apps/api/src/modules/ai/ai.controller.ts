@@ -62,4 +62,10 @@ export class AiController {
   generateExercises(@Body() body: { topic: string; level: string; type: string; count?: number }) {
     return this.aiService.generateExercises(body.topic, body.level, body.type, body.count);
   }
+
+  @Post('reading/generate')
+  @ApiOperation({ summary: 'Generate an AI reading story with comprehension questions' })
+  generateReading(@Body() body: { level: string; topic?: string }) {
+    return this.aiService.generateReadingStory(body.level, body.topic);
+  }
 }
