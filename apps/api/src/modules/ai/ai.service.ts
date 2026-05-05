@@ -267,73 +267,201 @@ Respond ONLY with valid JSON:
     'Global pandemic preparedness after COVID-19: what still needs to change',
   ];
 
+  private readonly TOPICS_BY_LEVEL: Record<string, string[]> = {
+    A1: [
+      'Finnish breakfast foods and morning routines',
+      'Shopping at a Finnish supermarket like Prisma or K-Market',
+      'The four seasons and weather in Finland',
+      'A typical day at a Finnish primary school',
+      'Finnish homes: apartments and houses in cities',
+      'Coffee culture and coffee breaks in Finland',
+      'Popular hobbies in Finland: fishing, hiking, and reading',
+      'Helsinki city centre: main streets and famous sights',
+      'Public buses and trams in Helsinki',
+      'Finnish lakes and summer swimming',
+      'Christmas in Finland: traditions and food',
+      'The Finnish sauna: what it is and how it works',
+      'Finnish animals: moose, bear, and reindeer',
+      'Eating at a Finnish café or restaurant',
+      'Ice hockey: Finland\'s most popular sport',
+      'Finnish national parks and outdoor walking',
+      'Finnish music: folk songs and popular bands',
+      'Midsummer celebrations in Finland',
+      'Finnish markets and open-air fairs in summer',
+      'Finnish libraries: free and open to everyone',
+      'Pets in Finnish families',
+      'Finnish fruit and berries: strawberries, blueberries, and lingonberries',
+      'A visit to a Finnish pharmacy',
+      'Finnish parks and playgrounds for families',
+      'Cross-country skiing in Finnish winter',
+    ],
+    A2: [
+      'The Finnish healthcare system and how to visit a doctor',
+      'Finnish education: from kindergarten to university',
+      'Lapland and the northern lights',
+      'Finnish food culture: specialties and holiday dishes',
+      'Midsummer festival traditions in Finland',
+      'The Finnish sauna culture and its UNESCO recognition',
+      'Women\'s rights and equality in Finland',
+      'Winter sports in Finland: skiing and ice skating',
+      'The Finnish social security and benefit system',
+      'Who moves to Finland and why: immigration basics',
+      'What makes the Finnish language unique',
+      'Finland\'s trains, buses, and ferries',
+      'Helsinki as a capital city: a short history',
+      'The Swedish minority in Finland',
+      'Finnish rock and metal music scene',
+      'Recycling and environmental values in Finland',
+      'How Finnish schools differ from other countries',
+      'Life in Finnish cities versus the countryside',
+      'Finnish design: Marimekko, Iittala, and Artek',
+      'Finland\'s summer cottages and lake culture',
+      'Finnish alcohol policy and the Alko store',
+      'Finnish public holidays and how they are celebrated',
+      'Finnish housing: renting and buying an apartment',
+      'Volunteering and community life in Finland',
+      'Finnish reading culture and public libraries',
+    ],
+    B1: [
+      'Finland joining NATO in 2023 and its geopolitical significance',
+      'The Finnish education system and why it ranks among the world\'s best',
+      'The Sámi people: Finland\'s indigenous population and land rights',
+      'Nokia\'s rise and fall, and Finland\'s pivot to a startup economy',
+      'Finnish gender equality: first female president and prime minister',
+      'Helsinki\'s plan to be carbon-neutral by 2030',
+      'How Finland\'s welfare state works and its funding challenges',
+      'The Swedish-speaking minority in Finland',
+      'Finnish media freedom: top of the World Press Freedom Index',
+      'Supercell, Rovio, and the Finnish gaming industry',
+      'Finland\'s healthcare: strengths and regional disparities',
+      'Climate change in the Arctic and effects on Lapland',
+      'The history of Finnish sauna culture',
+      'Universal Basic Income pilot in Finland: results and debate',
+      'Mental health awareness and youth wellbeing in Finland',
+      'AI\'s impact on Finnish workplaces and employment',
+      'Finland\'s forest industry: economy vs biodiversity',
+      'The aging population crisis and Finnish pension policy',
+      'Finland in UN peacekeeping missions',
+      'Remote work and its impact on Finnish cities and regions',
+      'Finnish immigration and integration policy in the 2020s',
+      'The Russian invasion of Ukraine and Finland\'s diplomatic response',
+      'Finnish food security and agriculture amid global disruptions',
+      'The rise of populism and the Finns Party in Finnish politics',
+      'Finland\'s cybersecurity strategy and Nordic cooperation',
+    ],
+  };
+
   async generateReadingStory(level: string, topic?: string) {
-    const chosenTopic = topic || this.READING_TOPICS[Math.floor(Math.random() * this.READING_TOPICS.length)];
-    const topicLine = `Topic: "${chosenTopic}". Write specifically about this — do NOT substitute it with a generic topic about Finnish nature, seasons, or forests.`;
-    const levelGuide: Record<string, string> = {
-      A1: `LANGUAGE RULES FOR A1 (absolute beginner):
-- 8–10 words per sentence. Simple and clear, but not so short that sentences are meaningless.
-- Only present tense (olla, asua, tehdä, mennä, tulla, voida, saada). No past or future tense.
-- Basic connecting words allowed: ja, mutta, myös, tai, siksi. Use them to connect ideas naturally.
-- Only the most common everyday Finnish words (~600 words). Avoid all technical or rare vocabulary.
-- No subordinate clauses starting with joka, jotta, vaikka, kun, koska.
-- No passive voice. No conditional. No participles.
-- IMPORTANT: Each sentence must state a real, meaningful fact about the topic. Do NOT write empty filler sentences.
-- IMPORTANT: Vary sentence starters. Do NOT begin every sentence with the same subject or "Se". Use the topic name, pronouns, place names, and numbers naturally.
-- IMPORTANT: Even simple topics need real information. Include concrete facts: numbers, names, places, what something does, why it matters.
-- Example of GOOD A1 style: "Alko on valtion omistama kauppa. Suomessa alkoholia myydään vain Alkossa. Alko perustettiin vuonna 1932. Suomessa on yli 350 Alko-myymälää."
-- Example of BAD A1 style (forbidden): "Alko myy viiniä. Se myy olutta. Alko on suuri. Se on kallista." — this is too empty and repetitive.`,
-      A2: `LANGUAGE RULES FOR A2 (elementary):
-- 10–14 words per sentence on average. Simple but with natural flow between ideas.
-- Use present tense primarily; simple past tense (imperfect) is allowed for historical facts.
-- Basic conjunctions allowed: ja, mutta, koska, kun, jos, myös, siksi, sen takia.
-- Vocabulary: approximately 1000–1500 most common Finnish words. Avoid rare or technical words.
-- No passive voice. No complex participle constructions.
-- One simple subordinate clause per sentence at most.
-- Each sentence must carry meaningful information. Vary sentence structure and starters.
-- Example sentence style: "Suomi liittyi NATOon vuonna 2023, ja se oli historiallinen päätös. Venäjä hyökkäsi Ukrainaan vuonna 2022, ja se muutti Suomen turvallisuuspolitiikkaa."`,
-      B1: `LANGUAGE RULES FOR B1 (intermediate):
-- 12–18 words per sentence. Mix of simple and compound sentences.
-- All tenses allowed (present, past, future, perfect). Passive voice used occasionally.
-- Wider vocabulary including topic-specific words, but explain difficult terms in context.
-- Subordinate clauses with joka, jotta, vaikka, koska, jos are all fine.
-- Avoid rare idiomatic expressions or highly technical jargon.
-- Example sentence style: "Suomen NATO-jäsenyys muutti maan turvallisuuspolitiikkaa merkittävästi, koska aiemmin Suomi oli sotilaallisesti liittoutumaton maa."`,
-      B2: `LANGUAGE RULES FOR B2 (upper-intermediate):
-- Rich, varied sentence structures. 15–25 words per sentence is fine.
-- Full range of tenses, passive voice, conditional, and participle constructions.
-- Broad academic and topic-specific vocabulary. Use precise terminology naturally.
-- Complex subordinate clauses and nuanced argumentation.
-- The text should read like a real Finnish newspaper or magazine article.
-- Example sentence style: "Tekoälyn nopea kehitys on herättänyt laajaa yhteiskunnallista keskustelua siitä, miten sen käyttöä tulisi säännellä kansainvälisellä tasolla."`,
+    const pool = this.TOPICS_BY_LEVEL[level] || this.READING_TOPICS;
+    const chosenTopic = topic || pool[Math.floor(Math.random() * pool.length)];
+
+    const levelConfig: Record<string, { temperature: number; rules: string }> = {
+      A1: {
+        temperature: 0.25,
+        rules: `══════════════════════════════════════════════
+CEFR A1 — ABSOLUTE BEGINNER. THIS IS THE MOST IMPORTANT INSTRUCTION.
+══════════════════════════════════════════════
+
+The reader has studied Finnish for only 1–2 months. Every sentence MUST pass ALL of these rules:
+
+SENTENCE LENGTH: MAXIMUM 9 WORDS PER SENTENCE.
+→ Count every word. If a sentence has 10 or more words, split it into two sentences immediately.
+
+ALLOWED VERBS (present tense only):
+on, ovat, ei ole, asuu, asuvat, tekee, tekevät, menee, menevät, tulee, tulevat,
+myy, maksaa, syö, juo, pitää, rakastaa, haluaa, voi, tarvitsee, alkaa, loppuu, on
+
+ABSOLUTELY FORBIDDEN — do not use these EVER:
+✗ Passive voice: ANY word ending in -taan, -daan, -llaan, -ssaan, -ään, -aan
+  Bad examples: myydään, tehdään, käytetään, järjestetään, kutsutaan — ALL FORBIDDEN
+✗ Conditional: ANY word ending in -isi
+  Bad examples: olisi, voisi, pitäisi, tulisi, saisi — ALL FORBIDDEN
+✗ Perfect tense: "on + past participle"
+  Bad examples: on tullut, on mennyt, on ollut, on saanut — ALL FORBIDDEN
+✗ Subordinate clauses: NEVER use joka, jotta, kun, koska, vaikka, että, jos
+✗ Long compound words (over 10 letters)
+✗ Any word not in the 500 most common Finnish words
+
+ALLOWED connectors (and ONLY these): ja, mutta, myös, tai, siksi, ensin, sitten, nyt
+
+EXAMPLE OF PERFECT A1 TEXT — copy this sentence style exactly:
+"Helsinki on Suomen pääkaupunki. Se on meren rannalla Etelä-Suomessa. Helsingissä asuu yli 600 000 ihmistä. Kaupungissa on paljon puistoja ja kahviloita. Turistit rakastavat Helsinkiä. Helsinki on moderni ja kaunis kaupunki."
+
+Notice: every sentence is short, clear, present tense, no passive, no subordinate clauses.
+
+SELF-CHECK: After writing each sentence, count its words. If count ≥ 10, split it.`,
+      },
+      A2: {
+        temperature: 0.40,
+        rules: `══════════════════════════════════════════════
+CEFR A2 — ELEMENTARY. THIS IS THE MOST IMPORTANT INSTRUCTION.
+══════════════════════════════════════════════
+
+The reader has studied Finnish for about 6 months. Rules MUST be followed strictly:
+
+SENTENCE LENGTH: 10–14 words per sentence on average. Max 15 words.
+
+ALLOWED GRAMMAR:
+✓ Present tense (main tense throughout)
+✓ Simple past tense (imperfect) for historical facts ONLY: oli, tuli, meni, alkoi, sai
+✓ Passive past for historical establishment: "perustettiin vuonna...", "rakennettiin..." — ONLY for founding/historical facts
+✓ Conjunctions: ja, mutta, koska, kun, jos, myös, siksi, tai, sen takia
+✓ One short subordinate clause per sentence at most (keep it under 6 words)
+
+ABSOLUTELY FORBIDDEN:
+✗ Conditional mood: olisi, voisi, pitäisi, tulisi, saisi — FORBIDDEN
+✗ Perfect tense: "on tullut", "on ollut", "oli mennyt" — FORBIDDEN
+✗ Complex participle constructions: "lukemalla oppien", "tehty päätös" — FORBIDDEN
+✗ Three or more clauses in one sentence — FORBIDDEN
+✗ Academic, technical, or rare vocabulary — FORBIDDEN
+
+EXAMPLE OF PERFECT A2 TEXT:
+"Suomi itsenäistyi Venäjästä vuonna 1917. Se oli suuri hetki Suomen historiassa. Suomalaiset juhlivat itsenäisyyspäivää joka vuosi 6. joulukuuta. Helsingissä on paraati ja presidentti pitää vastaanoton. Monet suomalaiset katsovat vastaanottoa televisiosta. Itsenäisyyspäivä on tärkeä juhlapäivä kaikille suomalaisille."`,
+      },
+      B1: {
+        temperature: 0.55,
+        rules: `CEFR B1 — INTERMEDIATE.
+Write like a clear Finnish magazine article. Mix short and medium sentences (12–18 words).
+Use all tenses naturally. Passive voice is fine occasionally. Subordinate clauses (joka, koska, vaikka, kun, jotta) are welcome.
+Include topic-specific vocabulary but explain very rare terms briefly in context.
+Example: "Suomen NATO-jäsenyys muutti maan turvallisuuspolitiikkaa merkittävästi, koska aiemmin Suomi oli sotilaallisesti liittoutumaton maa. Venäjän hyökkäys Ukrainaan vuonna 2022 nopeutti tätä historiallista päätöstä huomattavasti."`,
+      },
+      B2: {
+        temperature: 0.65,
+        rules: `CEFR B2 — UPPER-INTERMEDIATE.
+Write like a Finnish newspaper or academic magazine. Rich, varied sentence structures (15–25 words).
+Full grammar: all tenses, passive, conditional, participles, complex subordinate clauses.
+Precise academic and topic-specific vocabulary. Nuanced analysis and argumentation.
+Example: "Tekoälyn nopea kehitys on herättänyt laajaa yhteiskunnallista keskustelua siitä, miten sen käyttöä tulisi säännellä kansainvälisellä tasolla, erityisesti kun vaikutukset ulottuvat yhä useammille elämänalueille."`,
+      },
     };
 
-    const guide = levelGuide[level] || levelGuide['B1'];
+    const config = levelConfig[level] || levelConfig['B1'];
 
     const completion = await this.groq.chat.completions.create({
       model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
-          content: `You generate Finnish reading practice articles for language learners. Write factual, informative content — not fictional stories.
-Topic: ${topicLine}
-Target CEFR level: ${level}.
+          content: `You are a Finnish language teacher writing graded reading texts for learners.
 
-${guide}
+${config.rules}
 
-STRUCTURE RULES:
-- Write exactly 3 or 4 paragraphs. Never fewer.
-- Each paragraph must have at least 4 complete sentences. Never fewer.
-- Separate paragraphs with \\n\\n.
-- Base the content on real facts about the topic. Adapt the complexity of ideas — not just words — to the level. For A1/A2, cover only the simplest key facts about the topic. For B1/B2, include analysis and detail.
-- The text should feel like a short educational passage or newspaper article.
+TOPIC: "${chosenTopic}"
+Write factual, informative content about this exact topic. Do NOT switch to a generic topic.
+Adapt the COMPLEXITY OF IDEAS to the level: A1/A2 → only the simplest concrete facts; B1/B2 → include analysis and nuance.
 
-Respond ONLY with valid JSON matching this exact schema:
+STRUCTURE (mandatory):
+- Exactly 3 or 4 paragraphs, separated by \\n\\n
+- Each paragraph: minimum 4 sentences
+- Questions for A1/A2: simple factual recall only. Questions for B1/B2: may require inference.
+
+Respond ONLY with valid JSON:
 {
-  "title": "Finnish title of the article",
-  "titleEn": "English title of the article",
-  "category": "one of: History | Culture | Law & Society | Current Events | Science | Economy | Nordic Life | Nature | Technology | Health | Media",
-  "text": "3–4 paragraphs in Finnish separated by \\n\\n, each with at least 4 sentences, written strictly at ${level} level",
+  "title": "Finnish title",
+  "titleEn": "English title",
+  "category": "one of: History | Culture | Society | Current Events | Science | Economy | Nordic Life | Nature | Technology | Health | Sport | Education",
+  "text": "full article text in Finnish, paragraphs separated by \\n\\n",
   "vocab": ["word1 (english1)", "word2 (english2)", "word3 (english3)", "word4 (english4)", "word5 (english5)", "word6 (english6)", "word7 (english7)", "word8 (english8)"],
   "questions": [
     { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 0 },
@@ -348,11 +476,11 @@ Respond ONLY with valid JSON matching this exact schema:
     { "q": "Question in English?", "options": ["A", "B", "C", "D"], "correct": 2 }
   ]
 }
-"correct" is the 0-based index of the correct answer in "options". You MUST include exactly 10 questions — no more, no fewer. Questions for A1/A2 should be simple factual recall. Questions for B1/B2 may require inference and understanding of details.`,
+"correct" is the 0-based index. Include exactly 10 questions.`,
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.75,
+      temperature: config.temperature,
       max_tokens: 3200,
     });
     return JSON.parse(completion.choices[0].message.content || '{}');
