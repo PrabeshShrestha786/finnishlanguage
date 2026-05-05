@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers, Sparkles, Loader2, X, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -527,6 +527,9 @@ export default function ReadingPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
   const [showPassage, setShowPassage] = useState(false);
+  const [completedStories, setCompletedStories] = useState<Record<number, { score: number; pct: number }>>({});
+  const [tooltip, setTooltip] = useState<{ word: string; translation: string | null; x: number; y: number } | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   // AI generation state
   const [aiStories, setAiStories] = useState<AnyStory[]>([]);
@@ -534,6 +537,19 @@ export default function ReadingPage() {
   const [showGenPanel, setShowGenPanel] = useState(false);
   const [genLevel, setGenLevel] = useState<string>(user?.finnishLevel || 'A1');
   const [genTopic, setGenTopic] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('finnmate-reading-history');
+      if (saved) setCompletedStories(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const close = () => setTooltip(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   const generateStory = async () => {
     setGenerating(true);
@@ -569,6 +585,23 @@ export default function ReadingPage() {
       setGenerating(false);
     }
   };
+
+  const handleWordClick = useCallback(async (word: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const clean = word.replace(/[.,!?;:"""''()[\]…—–]/g, '').trim();
+    if (!clean || clean.length < 2) return;
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setTooltip({ word: clean, translation: null, x: rect.left, y: rect.top - 76 });
+    setTranslating(true);
+    try {
+      const res = await api.post('/ai/translate', { text: clean, from: 'fi', to: 'en' });
+      setTooltip((prev) => prev ? { ...prev, translation: res.data.translation || '—' } : null);
+    } catch {
+      setTooltip((prev) => prev ? { ...prev, translation: '(failed)' } : null);
+    } finally {
+      setTranslating(false);
+    }
+  }, []);
 
   const baseStories = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
   const filteredAi = filter === 'All' ? aiStories : aiStories.filter((s) => s.level === filter);
@@ -612,6 +645,13 @@ export default function ReadingPage() {
           updateUser({ totalXP: (user?.totalXP || 0) + xp });
           api.post('/users/xp', { xpEarned: xp, source: 'reading' }).catch(() => {});
         }
+        if (selectedStory) {
+          setCompletedStories((prev) => {
+            const updated = { ...prev, [selectedStory.id]: { score: finalCorrect, pct: finalPct } };
+            try { localStorage.setItem('finnmate-reading-history', JSON.stringify(updated)); } catch {}
+            return updated;
+          });
+        }
         setView('result');
       } else {
         // advance to next unanswered question
@@ -630,8 +670,40 @@ export default function ReadingPage() {
   const score = answers.filter((a, i) => a === selectedStory?.questions[i]?.correct).length;
   const pct = selectedStory ? Math.round((score / selectedStory.questions.length) * 100) : 0;
 
+  const renderClickableText = (text: string) => (
+    <>
+      {text.split(/\n\n+/).map((para, i) => (
+        <p key={i}>
+          {para.trim().split(/\s+/).map((word, wi) => (
+            <span
+              key={wi}
+              onClick={(e) => handleWordClick(word, e)}
+              className="cursor-pointer hover:bg-yellow-100 rounded px-0.5 transition-colors duration-100"
+            >
+              {word}{' '}
+            </span>
+          ))}
+        </p>
+      ))}
+    </>
+  );
+
   return (
     <div className="space-y-6">
+      {/* Tap-to-translate tooltip */}
+      {tooltip && (
+        <div
+          className="fixed z-50 bg-slate-800 text-white rounded-xl shadow-2xl px-3.5 py-2.5 min-w-[120px] pointer-events-none"
+          style={{ left: Math.max(8, Math.min(tooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 800) - 200)), top: Math.max(8, tooltip.y) }}
+        >
+          <div className="text-yellow-300 font-bold text-sm">{tooltip.word}</div>
+          <div className="text-slate-300 text-xs mt-0.5">
+            {translating ? <span className="animate-pulse">Translating…</span> : (tooltip.translation || '')}
+          </div>
+          <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-slate-800 rotate-45" />
+        </div>
+      )}
+
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
@@ -755,12 +827,17 @@ export default function ReadingPage() {
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[story.level]}`}>{story.level}</span>
                           <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{story.category}</span>
                           {isAi && (
                             <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
                               <Sparkles className="w-2.5 h-2.5" /> AI
+                            </span>
+                          )}
+                          {completedStories[story.id] && (
+                            <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> {completedStories[story.id].pct}%
                             </span>
                           )}
                         </div>
@@ -812,10 +889,11 @@ export default function ReadingPage() {
                 <p className="text-slate-400 text-sm mb-6">{selectedStory.titleEn}</p>
 
                 <div className="text-slate-700 leading-8 text-base mb-6 bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-4">
-                  {selectedStory.text.split(/\n\n+/).map((para, i) => (
-                    <p key={i}>{para.trim()}</p>
-                  ))}
+                  {renderClickableText(selectedStory.text)}
                 </div>
+                <p className="text-xs text-slate-400 -mt-4 mb-5 flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
+                </p>
 
                 {/* Key Vocabulary */}
                 <div className="mb-6">
@@ -868,10 +946,11 @@ export default function ReadingPage() {
                   >
                     <div className="px-5 pb-5 border-t border-slate-100">
                       <div className="text-slate-700 leading-7 text-sm bg-slate-50 rounded-xl p-4 border border-slate-100 mt-4 max-h-64 overflow-y-auto space-y-3">
-                        {selectedStory.text.split(/\n\n+/).map((para, i) => (
-                          <p key={i}>{para.trim()}</p>
-                        ))}
+                        {renderClickableText(selectedStory.text)}
                       </div>
+                      <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
+                      </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {selectedStory.vocab.map((v, i) => (
                           <span key={i} className="text-xs bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{v}</span>
