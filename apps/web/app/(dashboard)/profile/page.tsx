@@ -64,6 +64,7 @@ export default function ProfilePage() {
       nativeLanguage: user?.nativeLanguage || 'ENGLISH',
       finnishLevel: user?.finnishLevel || 'A1',
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const updateForm = (patch: Partial<typeof form>) => {
@@ -311,9 +312,10 @@ export default function ProfilePage() {
                 <div className="text-slate-800 font-semibold text-sm">Notifications</div>
                 <div className="text-slate-400 text-xs">Daily reminders and streak alerts</div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}
+              <div
                 className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${notificationsOn ? 'bg-blue-600' : 'bg-slate-300'}`}
-                onClick={() => setNotificationsOn((v) => !v)}>
+                onClick={(e) => { e.stopPropagation(); setNotificationsOn((v) => !v); }}
+              >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${notificationsOn ? 'right-1' : 'left-1'}`} />
               </div>
             </div>
