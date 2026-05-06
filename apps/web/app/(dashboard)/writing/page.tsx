@@ -105,7 +105,7 @@ const PROMPTS = [
     level: 'B1',
     xp: 90,
     color: 'from-violet-500 to-purple-600',
-    description: 'Write a short opinion essay: "Is social media good or bad for society?"',
+    description: 'Write a short opinion essay: Is social media good or bad for society?',
     hints: ['State your opinion: "Minusta..." or "Uskon, että..." (I believe that...)', 'Give reasons: "Ensinnäkin..." (Firstly...), "Toiseksi..." (Secondly...)', 'Acknowledge the other side: "Toisaalta..." (On the other hand...)', 'Conclude with: "Yhteenvetona..." (In conclusion...)'],
     example: 'Sosiaalinen media on nykyajan yhteiskunnan keskeinen osa. Uskon, että se on enemmän hyödyksi kuin haitaksi, kun sitä käytetään viisaasti.\n\nEnsinnäkin sosiaalinen media yhdistää ihmisiä ympäri maailmaa. Voimme pitää yhteyttä ystäviin ja perheenjäseniin, jotka asuvat kaukana.\n\nToisaalta sosiaalinen media voi aiheuttaa riippuvuutta ja vertailua muihin ihmisiin, mikä voi heikentää itsetuntoa.\n\nYhteenvetona voidaan sanoa, että sosiaalinen media on arvokas työkalu, jos sitä käyttää harkitusti.',
   },

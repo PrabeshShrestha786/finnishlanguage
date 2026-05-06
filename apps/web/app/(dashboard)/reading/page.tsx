@@ -605,7 +605,8 @@ export default function ReadingPage() {
       document.removeEventListener('click', close);
       window.removeEventListener('scroll', close, true);
     };
-  }, [!!wordBar]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordBar !== null]);
 
   const generateStory = async () => {
     setGenerating(true);
