@@ -442,7 +442,7 @@ export default function WritingPage() {
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 text-sm">
-                    Click "Generate Task" to get an English text to translate
+                    Click &ldquo;Generate Task&rdquo; to get an English text to translate
                   </div>
                 )}
 
