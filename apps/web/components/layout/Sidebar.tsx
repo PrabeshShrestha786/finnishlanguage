@@ -15,9 +15,9 @@ import { useAuthStore } from '@/store/authStore';
 const NAV_ITEMS = [
   { href: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard',  color: 'from-blue-500 to-indigo-600' },
   { href: '/reading',    icon: BookOpen,         label: 'Reading',    color: 'from-cyan-500 to-blue-500' },
+  { href: '/writing',    icon: PenTool,          label: 'Writing',    color: 'from-blue-500 to-indigo-600' },
   { href: '/listening',  icon: Headphones,       label: 'Listening',  color: 'from-purple-500 to-violet-600' },
   { href: '/speaking',   icon: Mic,              label: 'Speaking',   color: 'from-emerald-400 to-teal-500' },
-  { href: '/writing',    icon: PenTool,          label: 'Writing',    color: 'from-blue-500 to-indigo-600' },
   { href: '/vocabulary', icon: Brain,            label: 'Vocabulary', color: 'from-yellow-400 to-orange-500' },
   { href: '/grammar',    icon: GraduationCap,    label: 'Grammar',    color: 'from-pink-500 to-rose-600' },
   { href: '/yki-prep',   icon: Trophy,           label: 'YKI Prep',   color: 'from-blue-600 to-indigo-700' },

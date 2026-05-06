@@ -88,42 +88,93 @@ Tailor ALL explanations and vocabulary to this exact level.`;
       messages: [
         {
           role: 'system',
-          content: `You are a Finnish grammar expert. Learner level: ${level}, native language: ${nativeLang}.
-Analyze the Finnish text for errors. Respond ONLY with valid JSON matching this exact schema:
+          content: `You are a highly qualified Finnish language teacher and YKI (Yleinen kielitutkinto) examiner. The learner's current level is ${level || 'A2'} and their native language is ${nativeLang || 'English'}.
+
+Your task is to carefully analyze, correct, and evaluate the Finnish text with a professional, pedagogical approach.
+
+For every submission you MUST:
+1. Produce a fully corrected standard written Finnish (kirjakieli) version.
+2. List every mistake with: the exact wrong phrase, the correct phrase, a clear explanation covering grammar case / verb conjugation / vocabulary / word order as applicable, and the CEFR level of the mistake (A1/A2/B1/B2/C1).
+3. Evaluate naturalness honestly: "natural", "slightly unnatural", or "unnatural". If not fully natural, provide a more native-like alternative.
+4. Detect puhekieli (spoken Finnish): if present, explain it and give the kirjakieli equivalent.
+5. Give a score 0–100 based on: accuracy (50 pts), vocabulary (25 pts), naturalness (25 pts).
+6. Write overallFeedback in an encouraging but honest examiner tone — 2–3 sentences max.
+
+Respond ONLY with valid JSON matching this exact schema (no extra keys, no markdown):
 {
   "hasErrors": boolean,
-  "correctedText": "string",
-  "errors": [{"original": "string", "correction": "string", "explanation": "string", "type": "string"}],
-  "overallFeedback": "string",
+  "correctedText": "kirjakieli corrected version",
+  "naturalVersion": "more native-like version if different from correctedText, else same as correctedText",
+  "errors": [
+    {
+      "original": "exact wrong text from the input",
+      "correction": "correct replacement",
+      "explanation": "clear pedagogical explanation",
+      "type": "grammar | vocabulary | structure | puhekieli",
+      "level": "A1 | A2 | B1 | B2 | C1"
+    }
+  ],
+  "naturalness": "natural | slightly unnatural | unnatural",
+  "naturalnessNote": "one sentence explaining the naturalness rating",
+  "puhekieli": "explanation of spoken Finnish used, or null if none detected",
+  "overallFeedback": "2-3 sentence examiner-style feedback",
   "score": number
 }`,
         },
-        { role: 'user', content: `Check this Finnish text: "${text}"` },
+        { role: 'user', content: `Analyze this Finnish text: "${text}"` },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.3,
+      temperature: 0.2,
     });
     return JSON.parse(completion.choices[0].message.content || '{}');
   }
 
-  async translate(text: string, from: string, to: string) {
+  async translate(text: string, from: string, to: string, context?: string) {
+    const isFinnish = from === 'fi';
+    const contextBlock = context ? `\n\nThe word appears in this sentence (use it to resolve ambiguity): "${context}"` : '';
     const completion = await this.groq.chat.completions.create({
       model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
-          content: `Translate from ${from} to ${to}. Respond ONLY with valid JSON:
+          content: isFinnish
+            ? `You are a Finnish grammar and translation expert. The user gives you a single Finnish word that may be grammatically inflected (Finnish has 15 cases plus possessive suffixes).
+
+Step 1 – use the sentence context (if provided) to resolve ambiguity.
+Step 2 – identify the base/dictionary form.
+Step 3 – identify the grammatical case or form being used.
+Step 4 – provide both the base meaning AND the meaning in this specific inflected form.
+
+Examples:
+- "koulusta": baseForm="koulu", translation="school", form="from school", grammaticalCase="elative case (-sta/-stä)"
+- "talossa": baseForm="talo", translation="house", form="in the house", grammaticalCase="inessive case (-ssa/-ssä)"
+- "kirjoja": baseForm="kirja", translation="book", form="books (some books)", grammaticalCase="partitive plural (-ja/-jä)"
+- "lohikeiton": baseForm="lohikeitto", translation="salmon soup", form="of the salmon soup", grammaticalCase="genitive case (-n)"
+- "luokseen": baseForm="luokse", translation="to (someone's presence)", form="to him/her/them", grammaticalCase="allative + 3rd person possessive suffix (-en)"
+- "koulu": baseForm="koulu", translation="school", form="school", grammaticalCase="nominative"
+
+Rules:
+- Always fill in all four fields.
+- If the word is already in nominative (base form), grammaticalCase = "nominative".
+- Never invent meanings.
+
+Respond ONLY with valid JSON:
+{
+  "translation": "base form English meaning (e.g. school)",
+  "form": "meaning in this inflected form (e.g. from school)",
+  "baseForm": "Finnish dictionary/base form",
+  "grammaticalCase": "case name and suffix (e.g. elative case (-sta/-stä))"
+}`
+            : `Translate from ${from} to ${to}. Respond ONLY with valid JSON:
 {
   "translation": "string",
-  "alternatives": ["string"],
-  "pronunciation": "string",
   "notes": "string"
 }`,
         },
-        { role: 'user', content: text },
+        { role: 'user', content: `${text}${contextBlock}` },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.2,
+      temperature: 0,
     });
     return JSON.parse(completion.choices[0].message.content || '{}');
   }
@@ -509,6 +560,159 @@ Respond ONLY with valid JSON: { "exercises": [{"question":"","options":[],"corre
       orderBy: { createdAt: 'asc' },
       take: limit,
     });
+  }
+
+  async generateTranslationTask(level: string, direction: 'en-fi' | 'fi-en' = 'en-fi') {
+    const levelGuide: Record<string, string> = {
+      A1: '2-3 very simple sentences, present tense only, max 8 words per sentence',
+      A2: '3-4 simple sentences, present and simple past, max 12 words per sentence',
+      B1: '4-5 sentences with varied tenses and connectors, max 16 words per sentence',
+      B2: '5-6 sentences with complex structures, max 22 words per sentence',
+    };
+
+    const topicsByLevel: Record<string, string[]> = {
+      A1: ['morning routine','food and drink','family members','colours and numbers','weather today','pets','home and rooms','shopping at a market','greetings','days of the week','favourite foods','getting dressed','a simple walk','the school','a birthday'],
+      A2: ['weekend plans','a visit to the doctor','public transport','cooking a meal','describing a friend','a postcard from holiday','a supermarket trip','favourite hobby','the park','a phone call','learning languages','a café visit','a rainy day','a trip to the library','seasonal activities'],
+      B1: ['a job interview','planning a trip abroad','an opinion about social media','describing a past holiday','environmental habits','renting an apartment','a news story','comparing cities','work and study balance','healthy lifestyle','a cultural event','learning a skill','volunteering','a book recommendation','city vs countryside'],
+      B2: ['climate change policy','remote work trends','the role of AI in education','mental health awareness','urban development','digital privacy','immigration and integration','economic inequality','media literacy','renewable energy','cultural identity','the future of healthcare','political participation','globalisation','scientific research ethics'],
+    };
+
+    const topics = topicsByLevel[level] || topicsByLevel['A2'];
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+    const guide = levelGuide[level] || levelGuide['A2'];
+    const isFiEn = direction === 'fi-en';
+
+    const levelDescriptions: Record<string, string> = {
+      A1: 'Write 2–3 short sentences about one simple everyday situation. Use present tense and basic vocabulary. Write casually and naturally — like a quick note jotted by a real person, not a textbook example.',
+      A2: 'Write 3 sentences about a simple situation or small event. Mix present and past tense where it feels natural. Keep it casual and grounded — like something you would actually say to a friend.',
+      B1: 'Write 5–6 sentences using varied tenses (present, past, future or conditional). Include at least one relative clause or subordinate clause. Give an opinion or explain something, like a short blog post or a personal email. Vocabulary can be moderately complex.',
+      B2: 'Write 6–7 sentences with complex sentence structures, varied tenses (including passive or conditional), and precise vocabulary. The text should read like a polished paragraph from a quality news article or opinion piece.',
+    };
+
+    const systemPrompt = isFiEn
+      ? `You are writing a short Finnish passage for a language learner (CEFR ${level}) to translate into English.
+
+Topic: "${topic}"
+
+HOW TO WRITE AT THIS LEVEL:
+${levelDescriptions[level] || levelDescriptions['A2']}
+
+NATURALNESS IS THE #1 PRIORITY. The text must sound like something a real Finnish person would actually write — not a grammar exercise. Use kirjakieli (standard written Finnish).
+
+STRICTLY AVOID:
+- Stacking short choppy sentences with no connection ("Aurinko paistaa. On lämmin. Pilvet tulevat.")
+- Starting every sentence with the same subject
+- Sentences that feel like isolated textbook examples
+
+NAMING RULE: If people appear, use only: Matti, Liisa, Pekka, Anna, Juha, Mari, Timo, Sari, Eero, Aino, Ville, Hanna. NEVER use words that are also common Finnish nouns (e.g. "Sana", "Koulu", "Katu", "Talo").
+
+Respond ONLY with valid JSON:
+{
+  "source": "the Finnish passage",
+  "topic": "${topic}",
+  "hints": ["English hint for a tricky Finnish word or grammatical form", "another hint if genuinely needed"]
+}`
+      : `You are writing a short English passage for a Finnish language learner (CEFR ${level}) to translate into Finnish.
+
+Topic: "${topic}"
+
+HOW TO WRITE AT THIS LEVEL:
+${levelDescriptions[level] || levelDescriptions['A2']}
+
+NATURALNESS IS THE #1 PRIORITY. The text must sound like something a real person would actually say or write — not a grammar exercise. Choose vocabulary that translates cleanly into Finnish (avoid idioms with no Finnish equivalent).
+
+STRICTLY AVOID:
+- Stacking short choppy sentences with no connection ("Sun shines. It is warm. Clouds come.")
+- Starting every sentence with the same subject
+- Sentences that feel like isolated textbook examples
+
+Respond ONLY with valid JSON:
+{
+  "source": "the English passage",
+  "topic": "${topic}",
+  "hints": ["Finnish hint for a word or phrase that is tricky to translate", "another hint if genuinely needed"]
+}`;
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{ role: 'system', content: systemPrompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.9,
+    });
+    return JSON.parse(completion.choices[0].message.content || '{}');
+  }
+
+  async checkTranslation(source: string, translation: string, level: string, direction: 'en-fi' | 'fi-en' = 'en-fi') {
+    const isFiEn = direction === 'fi-en';
+    const systemPrompt = isFiEn
+      ? `You are a Finnish language expert evaluating an English translation of a Finnish text.
+
+The learner (level ${level}) was given this Finnish text to translate into English:
+"${source}"
+
+CRITICAL rules — read carefully before scoring:
+1. If the learner's translation is identical to, or semantically equivalent to, a correct translation, the score MUST be 100 (accuracy=40, grammar=30, vocabulary=20, naturalness=10) and errors MUST be [].
+2. Any word capitalised mid-sentence in the Finnish source is a PROPER NOUN (person or place name) — keep it as-is, never translate it as a common noun.
+3. Only add an entry to "errors" if the phrase is GRAMMATICALLY WRONG or CHANGES THE MEANING. Valid alternatives go in overallFeedback as tips, never in errors.
+4. Do NOT deduct points for stylistic choices when the meaning is fully preserved and grammar is correct.
+
+Evaluate the English translation on:
+- Accuracy (0-40 pts): does it convey the full meaning of the Finnish, respecting proper nouns?
+- Grammar (0-30 pts): correct English grammar and sentence structure
+- Vocabulary (0-20 pts): appropriate English words that match the Finnish meaning
+- Naturalness (0-10 pts): sounds like natural, fluent English
+
+Respond ONLY with valid JSON:
+{
+  "score": number,
+  "accuracy": number (0-40),
+  "grammar": number (0-30),
+  "vocabulary": number (0-20),
+  "naturalness": number (0-10),
+  "betterTranslation": "an ideal English translation of the Finnish text",
+  "errors": [{ "original": "wrong English phrase", "correction": "better English", "explanation": "why" }],
+  "overallFeedback": "2-3 sentences of honest, supportive feedback"
+}`
+      : `You are a YKI-certified Finnish language examiner evaluating a Finnish translation.
+
+The learner (level ${level}) was given this English text to translate into Finnish:
+"${source}"
+
+CRITICAL rules — read carefully before scoring:
+1. If the learner's translation is identical to, or semantically equivalent to, a correct translation, the score MUST be 100 (accuracy=40, grammar=30, vocabulary=20, naturalness=10) and errors MUST be [].
+2. Finnish is a pro-drop language — subject pronouns (minä, sinä, se, hän, me, te, ne) are OPTIONAL. Never mark an included or omitted pronoun as an error.
+3. Only add an entry to "errors" if the phrase is GRAMMATICALLY WRONG or CHANGES THE MEANING. Valid alternatives belong in overallFeedback as tips, never in errors.
+4. Word order variations that preserve meaning are not errors.
+5. Do NOT deduct points for stylistic choices when the meaning is fully preserved and the grammar is correct.
+
+Evaluate on:
+- Accuracy (0-40 pts): does it convey the full meaning?
+- Grammar (0-30 pts): correct Finnish cases, conjugation, word order
+- Vocabulary (0-20 pts): appropriate Finnish words chosen
+- Naturalness (0-10 pts): sounds like natural written Finnish
+
+Respond ONLY with valid JSON:
+{
+  "score": number,
+  "accuracy": number (0-40),
+  "grammar": number (0-30),
+  "vocabulary": number (0-20),
+  "naturalness": number (0-10),
+  "betterTranslation": "an ideal Finnish translation of the English text",
+  "errors": [{ "original": "wrong Finnish phrase", "correction": "correct Finnish", "explanation": "clear explanation" }],
+  "overallFeedback": "2-3 sentences — confirm correctness first, then optionally mention stylistic alternatives as tips"
+}`;
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Translation attempt: "${translation}"` },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+    });
+    return JSON.parse(completion.choices[0].message.content || '{}');
   }
 
   async getUserStories(userId: string) {

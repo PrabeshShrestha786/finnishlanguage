@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { BookOpen, Clock, Star, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Layers, Sparkles, Loader2, X, ChevronDown, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -533,6 +534,7 @@ type ViewState = 'list' | 'reading' | 'quiz' | 'result';
 
 export default function ReadingPage() {
   const { user, updateUser } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<ViewState>('list');
   const [selectedStory, setSelectedStory] = useState<AnyStory | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
@@ -541,7 +543,13 @@ export default function ReadingPage() {
   const [filter, setFilter] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
   const [showPassage, setShowPassage] = useState(false);
   const [completedStories, setCompletedStories] = useState<Record<string | number, { score: number; pct: number }>>({});
-  const [tooltip, setTooltip] = useState<{ word: string; translation: string | null; x: number; y: number } | null>(null);
+  const [wordBar, setWordBar] = useState<{
+    word: string; x: number; y: number;
+    translation: string | null;
+    form: string | null;
+    baseForm: string | null;
+    grammaticalCase: string | null;
+  } | null>(null);
   const [translating, setTranslating] = useState(false);
 
   // AI generation state
@@ -582,11 +590,22 @@ export default function ReadingPage() {
       .finally(() => setAiLoading(false));
   }, []);
 
+  useEffect(() => { setMounted(true); }, []);
+
+  // Dismiss on click-outside or scroll — only attached while bar is open.
+  // Click listener is delayed one tick so the opening click doesn't immediately close it.
   useEffect(() => {
-    const close = () => setTooltip(null);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, []);
+    if (!wordBar) return;
+    let id: ReturnType<typeof setTimeout>;
+    const close = () => setWordBar(null);
+    id = setTimeout(() => document.addEventListener('click', close), 0);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [!!wordBar]);
 
   const generateStory = async () => {
     setGenerating(true);
@@ -639,16 +658,25 @@ export default function ReadingPage() {
 
   const handleWordClick = useCallback(async (word: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     const clean = word.replace(/[.,!?;:"""''()[\]…—–]/g, '').trim();
     if (!clean || clean.length < 2) return;
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setTooltip({ word: clean, translation: null, x: rect.left, y: rect.top - 76 });
+    const sentence = (e.target as HTMLElement).closest('p')?.textContent?.trim() || '';
+    setWordBar({ word: clean, x: rect.left + rect.width / 2, y: rect.top, translation: null, form: null, baseForm: null, grammaticalCase: null });
     setTranslating(true);
     try {
-      const res = await api.post('/ai/translate', { text: clean, from: 'fi', to: 'en' });
-      setTooltip((prev) => prev ? { ...prev, translation: res.data.translation || '—' } : null);
+      const res = await api.post('/ai/translate', { text: clean, from: 'fi', to: 'en', context: sentence });
+      const d = res.data?.data || {};
+      setWordBar((prev) => prev ? {
+        ...prev,
+        translation: d.translation || '—',
+        form: d.form || null,
+        baseForm: d.baseForm || null,
+        grammaticalCase: d.grammaticalCase || null,
+      } : null);
     } catch {
-      setTooltip((prev) => prev ? { ...prev, translation: '(failed)' } : null);
+      setWordBar((prev) => prev ? { ...prev, translation: '(failed)' } : null);
     } finally {
       setTranslating(false);
     }
@@ -668,7 +696,7 @@ export default function ReadingPage() {
 
   const baseStories: AnyStory[] = filter === 'All' ? STORIES : STORIES.filter((s) => s.level === filter);
   const filteredAi = filter === 'All' ? aiStories : aiStories.filter((s) => s.level === filter);
-  const filtered: AnyStory[] = [...filteredAi, ...baseStories];
+  const filtered: AnyStory[] = [...baseStories, ...filteredAi];
 
   const startStory = (story: AnyStory) => {
     setSelectedStory(story);
@@ -754,43 +782,40 @@ export default function ReadingPage() {
   return (
     <div className="space-y-6">
       {/* Tap-to-translate tooltip */}
-      {tooltip && (
+      {mounted && wordBar && createPortal(
         <div
-          className="fixed z-50 bg-slate-800 text-white rounded-xl shadow-2xl px-3.5 py-2.5 min-w-[120px] pointer-events-none"
-          style={{ left: Math.max(8, Math.min(tooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 800) - 200)), top: Math.max(8, tooltip.y) }}
+          className="fixed z-[9999] bg-slate-800 text-white rounded-xl shadow-2xl px-3.5 py-2.5 pointer-events-none"
+          style={{
+            left: Math.max(8, Math.min(wordBar.x - 90, window.innerWidth - 200)),
+            top: wordBar.y - 8,
+            transform: 'translateY(-100%)',
+            minWidth: 180,
+            maxWidth: 260,
+          }}
         >
-          <div className="text-yellow-300 font-bold text-sm">{tooltip.word}</div>
-          <div className="text-slate-300 text-xs mt-0.5">
-            {translating ? <span className="animate-pulse">Translating…</span> : (tooltip.translation || '')}
-          </div>
-          <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-slate-800 rotate-45" />
-        </div>
+          <div className="text-yellow-300 font-bold text-sm">{wordBar.word}</div>
+          {translating ? (
+            <div className="text-slate-400 text-xs mt-1 animate-pulse">Translating…</div>
+          ) : (
+            <>
+              <div className="text-white text-sm mt-0.5 font-medium">{wordBar.form || wordBar.translation || '—'}</div>
+              {(wordBar.baseForm || wordBar.grammaticalCase) && (
+                <div className="border-t border-slate-600 mt-1.5 pt-1.5 flex flex-col gap-0.5">
+                  {wordBar.baseForm && wordBar.baseForm !== wordBar.word && (
+                    <div className="text-slate-400 text-xs">{wordBar.baseForm} = {wordBar.translation}</div>
+                  )}
+                  {wordBar.grammaticalCase && (
+                    <div className="text-slate-500 text-xs italic">{wordBar.grammaticalCase}</div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-800 rotate-45" />
+        </div>,
+        document.body,
       )}
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Reading Practice</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Read Finnish texts and test your comprehension</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-2">
-            <BookOpen className="w-4 h-4 text-cyan-600" />
-            <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories{aiStories.length > 0 ? ` · ${aiStories.length} saved` : ''}</span>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => setShowGenPanel((v) => !v)}
-            disabled={generating}
-            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
-          >
-            {generating
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-              : <><Sparkles className="w-4 h-4" /> Generate with AI</>
-            }
-          </motion.button>
-        </div>
-      </motion.div>
 
       {/* AI Generate Panel */}
       <AnimatePresence>
@@ -857,20 +882,36 @@ export default function ReadingPage() {
         {/* STORY LIST */}
         {view === 'list' && (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Filter */}
+            {/* Filter + actions row */}
             <div className="flex items-center gap-2 mb-5 flex-wrap">
-              <span className="text-slate-500 text-sm font-medium">Level:</span>
-              {(['All', 'A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => setFilter(lvl)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    filter === lvl ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => setShowGenPanel((v) => !v)}
+                disabled={generating}
+                className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+              >
+                {generating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                  : <><Sparkles className="w-4 h-4" /> Generate with AI</>}
+              </motion.button>
+              <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-1.5">
+                <BookOpen className="w-4 h-4 text-cyan-600" />
+                <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories{aiStories.length > 0 ? ` · ${aiStories.length} saved` : ''}</span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-slate-500 text-sm font-medium">Level:</span>
+                {(['All', 'A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    onClick={() => setFilter(lvl)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      filter === lvl ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {aiLoading && (
@@ -953,7 +994,7 @@ export default function ReadingPage() {
         {/* READING VIEW */}
         {view === 'reading' && selectedStory && (
           <motion.div key="reading" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-4">
-            <button onClick={() => setView('list')} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
+            <button onClick={() => { setView('list'); setWordBar(null); }} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
               ← Back to stories
             </button>
 
@@ -967,12 +1008,12 @@ export default function ReadingPage() {
                 <h2 className="text-2xl font-black text-slate-800 mb-0.5">{selectedStory.title}</h2>
                 <p className="text-slate-400 text-sm mb-6">{selectedStory.titleEn}</p>
 
+                <p className="text-xs text-slate-400 mb-2 flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
+                </p>
                 <div className="text-slate-700 leading-8 text-base mb-6 bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-4">
                   {renderClickableText(selectedStory.text)}
                 </div>
-                <p className="text-xs text-slate-400 -mt-4 mb-5 flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
-                </p>
 
                 {/* Key Vocabulary */}
                 <div className="mb-6">
@@ -1024,12 +1065,12 @@ export default function ReadingPage() {
                     className="overflow-hidden"
                   >
                     <div className="px-5 pb-5 border-t border-slate-100">
-                      <div className="text-slate-700 leading-7 text-sm bg-slate-50 rounded-xl p-4 border border-slate-100 mt-4 max-h-64 overflow-y-auto space-y-3">
-                        {renderClickableText(selectedStory.text)}
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
+                      <p className="text-xs text-slate-400 mt-3 mb-1.5 flex items-center gap-1">
                         <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
                       </p>
+                      <div className="text-slate-700 leading-7 text-sm bg-slate-50 rounded-xl p-4 border border-slate-100 max-h-64 overflow-y-auto space-y-3">
+                        {renderClickableText(selectedStory.text)}
+                      </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {selectedStory.vocab.map((v, i) => (
                           <span key={i} className="text-xs bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{v}</span>

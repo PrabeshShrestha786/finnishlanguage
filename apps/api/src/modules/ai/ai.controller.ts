@@ -33,8 +33,8 @@ export class AiController {
 
   @Post('translate')
   @ApiOperation({ summary: 'Translate text' })
-  translate(@Body() body: { text: string; from: string; to: string }) {
-    return this.aiService.translate(body.text, body.from, body.to);
+  translate(@Body() body: { text: string; from: string; to: string; context?: string }) {
+    return this.aiService.translate(body.text, body.from, body.to, body.context);
   }
 
   @Post('stt')
@@ -67,6 +67,18 @@ export class AiController {
   @ApiOperation({ summary: 'Generate an AI reading story with comprehension questions' })
   generateReading(@Body() body: { level: string; topic?: string }) {
     return this.aiService.generateReadingStory(body.level, body.topic);
+  }
+
+  @Post('writing/generate-task')
+  @ApiOperation({ summary: 'Generate a translation task (English → Finnish)' })
+  generateTranslationTask(@Body() body: { level: string; direction?: 'en-fi' | 'fi-en' }) {
+    return this.aiService.generateTranslationTask(body.level, body.direction);
+  }
+
+  @Post('writing/check-translation')
+  @ApiOperation({ summary: 'Check a translation' })
+  checkTranslation(@Body() body: { source: string; translation: string; level: string; direction?: 'en-fi' | 'fi-en' }) {
+    return this.aiService.checkTranslation(body.source, body.translation, body.level, body.direction);
   }
 
   @Get('stories')
