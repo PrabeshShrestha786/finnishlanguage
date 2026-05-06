@@ -72,8 +72,9 @@ export default function ProfilePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-violet-600/50" />
         </div>
         <div className="px-6 pb-6">
-          <div className="flex items-end gap-4 -mt-10 mb-4">
-            <div className="relative">
+          {/* Avatar — overlaps the banner */}
+          <div className="-mt-10 mb-3">
+            <div className="relative w-fit">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-2xl overflow-hidden">
                 {user?.avatar ? (
                   <Image src={user.avatar} alt="" fill className="object-cover" />
@@ -85,14 +86,15 @@ export default function ProfilePage() {
                 <Camera className="w-3.5 h-3.5 text-white" />
               </button>
             </div>
-            <div className="pb-1">
-              <h2 className="text-slate-800 font-black text-xl">{user?.firstName} {user?.lastName}</h2>
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
-                <span>@{user?.username || 'learner'}</span>
-                <span>·</span>
-                <span className="text-blue-600 font-semibold">{user?.finnishLevel || 'A1'} Level</span>
-                {nativeLang && <span>{nativeLang.flag}</span>}
-              </div>
+          </div>
+          {/* Name — always below the banner */}
+          <div className="mb-4">
+            <h2 className="text-slate-800 font-black text-xl">{user?.firstName} {user?.lastName}</h2>
+            <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <span>@{user?.username || 'learner'}</span>
+              <span>·</span>
+              <span className="text-blue-600 font-semibold">{user?.finnishLevel || 'A1'} Level</span>
+              {nativeLang && <span>{nativeLang.flag}</span>}
             </div>
           </div>
 
