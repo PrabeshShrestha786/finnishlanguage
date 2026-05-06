@@ -1,13 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   User, Mail, Globe, GraduationCap, Camera, Save, Flame,
-  Zap, Trophy, BookOpen, CheckCircle2, Settings, Bell, Shield, LogOut,
+  Zap, Trophy, BookOpen, CheckCircle2, Bell, Shield, LogOut,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -27,9 +27,11 @@ const LANGUAGES = [
 const TABS = ['Profile', 'Stats', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
-const ACHIEVEMENTS = [
-  { id: 1, title: 'First Step', desc: 'Complete your first lesson', icon: '🎯', earned: true },
-  { id: 2, title: 'Week Warrior', desc: '7-day streak', icon: '🔥', earned: true },
+const BIO_MAX = 160;
+
+const getAchievements = (streak: number, xp: number) => [
+  { id: 1, title: 'First Step', desc: 'Earn your first XP', icon: '🎯', earned: xp > 0 },
+  { id: 2, title: 'Week Warrior', desc: '7-day streak', icon: '🔥', earned: streak >= 7 },
   { id: 3, title: 'Vocabulary Master', desc: 'Learn 100 words', icon: '📚', earned: false },
   { id: 4, title: 'Grammar Guru', desc: 'Complete all grammar modules', icon: '📐', earned: false },
   { id: 5, title: 'Chatterbox', desc: 'Send 50 messages to AI tutor', icon: '💬', earned: false },
@@ -40,19 +42,46 @@ export default function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('Profile');
   const [loading, setLoading] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [notificationsOn, setNotificationsOn] = useState(true);
   const [form, setForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
+    username: user?.username || '',
     bio: (user as any)?.bio || '',
     nativeLanguage: user?.nativeLanguage || 'ENGLISH',
     finnishLevel: user?.finnishLevel || 'A1',
   });
+
+  // Re-sync form when user data changes (e.g. after save updates the store)
+  useEffect(() => {
+    if (dirty) return;
+    setForm({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      username: user?.username || '',
+      bio: (user as any)?.bio || '',
+      nativeLanguage: user?.nativeLanguage || 'ENGLISH',
+      finnishLevel: user?.finnishLevel || 'A1',
+    });
+  }, [user]);
+
+  const updateForm = (patch: Partial<typeof form>) => {
+    setForm((f) => ({ ...f, ...patch }));
+    setDirty(true);
+  };
+
+  const switchTab = (tab: Tab) => {
+    if (dirty && activeTab === 'Profile' && !confirm('You have unsaved changes. Leave without saving?')) return;
+    setActiveTab(tab);
+  };
 
   const saveProfile = async () => {
     setLoading(true);
     try {
       const res = await api.patch('/users/profile', form);
       updateUser(res.data.data);
+      setDirty(false);
       toast.success('Profile updated!');
     } catch {
       toast.error('Failed to update profile');
@@ -62,6 +91,7 @@ export default function ProfilePage() {
   };
 
   const nativeLang = LANGUAGES.find((l) => l.code === (user?.nativeLanguage || 'ENGLISH'));
+  const achievements = getAchievements(user?.currentStreak || 0, user?.totalXP || 0);
 
   return (
     <div className="space-y-6">
@@ -118,7 +148,7 @@ export default function ProfilePage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setActiveTab(t)}
+          <button key={t} onClick={() => switchTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             {t}
           </button>
@@ -144,13 +174,26 @@ export default function ProfilePage() {
                     <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       value={(form as any)[key]}
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      onChange={(e) => updateForm({ [key]: e.target.value })}
                       placeholder={placeholder}
                       className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                     />
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Username</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">@</span>
+                <input
+                  value={form.username}
+                  onChange={(e) => updateForm({ username: e.target.value.toLowerCase().replace(/\s/g, '') })}
+                  placeholder="your_username"
+                  className="w-full border border-slate-200 rounded-xl pl-7 pr-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                />
+              </div>
             </div>
 
             <div>
@@ -163,10 +206,15 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Bio</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600">Bio</label>
+                <span className={`text-xs ${form.bio.length > BIO_MAX ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
+                  {form.bio.length}/{BIO_MAX}
+                </span>
+              </div>
               <textarea
                 value={form.bio}
-                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                onChange={(e) => updateForm({ bio: e.target.value.slice(0, BIO_MAX) })}
                 placeholder="Tell us a bit about yourself..."
                 rows={3}
                 className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none transition-all"
@@ -177,7 +225,7 @@ export default function ProfilePage() {
               <label className="block text-xs font-semibold text-slate-600 mb-2">Finnish Level</label>
               <div className="flex flex-wrap gap-2">
                 {LEVELS.map((lvl) => (
-                  <button key={lvl} onClick={() => setForm({ ...form, finnishLevel: lvl })}
+                  <button key={lvl} onClick={() => updateForm({ finnishLevel: lvl })}
                     className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all border ${form.finnishLevel === lvl ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}`}>
                     {lvl}
                   </button>
@@ -189,7 +237,7 @@ export default function ProfilePage() {
               <label className="block text-xs font-semibold text-slate-600 mb-2">Native Language</label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {LANGUAGES.map((lang) => (
-                  <button key={lang.code} onClick={() => setForm({ ...form, nativeLanguage: lang.code })}
+                  <button key={lang.code} onClick={() => updateForm({ nativeLanguage: lang.code })}
                     className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-medium transition-all ${form.nativeLanguage === lang.code ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
                     <span>{lang.flag}</span>{lang.label}
                   </button>
@@ -235,7 +283,7 @@ export default function ProfilePage() {
                 <Trophy className="w-5 h-5 text-amber-500" /> Achievements
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {ACHIEVEMENTS.map((ach, i) => (
+                {achievements.map((ach, i) => (
                   <motion.div key={ach.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.07 }}
                     className={`rounded-xl p-4 border text-center transition-all ${ach.earned ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
                     <div className="text-3xl mb-2">{ach.icon}</div>
@@ -253,13 +301,32 @@ export default function ProfilePage() {
         {activeTab === 'Settings' && (
           <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50">
+            {/* Notifications — real toggle */}
+            <div className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
+              onClick={() => setNotificationsOn((v) => !v)}>
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <Bell className="w-5 h-5 text-slate-600" />
+              </div>
+              <div className="flex-1">
+                <div className="text-slate-800 font-semibold text-sm">Notifications</div>
+                <div className="text-slate-400 text-xs">Daily reminders and streak alerts</div>
+              </div>
+              <div onClick={(e) => e.stopPropagation()}
+                className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${notificationsOn ? 'bg-blue-600' : 'bg-slate-300'}`}
+                onClick={() => setNotificationsOn((v) => !v)}>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${notificationsOn ? 'right-1' : 'left-1'}`} />
+              </div>
+            </div>
+
+            {/* Coming-soon settings */}
             {[
-              { icon: Bell, label: 'Notifications', desc: 'Daily reminders and streak alerts', toggle: true },
-              { icon: Globe, label: 'Interface Language', desc: 'English (more coming soon)', toggle: false },
-              { icon: Shield, label: 'Privacy', desc: 'Manage your data and privacy', toggle: false },
-              { icon: GraduationCap, label: 'Learning Preferences', desc: 'Daily goal: 15 minutes', toggle: false },
-            ].map(({ icon: Icon, label, desc, toggle }) => (
-              <div key={label} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
+              { icon: Globe, label: 'Interface Language', desc: 'English (more coming soon)' },
+              { icon: Shield, label: 'Privacy', desc: 'Manage your data and privacy' },
+              { icon: GraduationCap, label: 'Learning Preferences', desc: 'Daily goal: 15 minutes' },
+            ].map(({ icon: Icon, label, desc }) => (
+              <div key={label}
+                onClick={() => toast('Coming soon!', { icon: '🚧' })}
+                className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-5 h-5 text-slate-600" />
                 </div>
@@ -267,13 +334,7 @@ export default function ProfilePage() {
                   <div className="text-slate-800 font-semibold text-sm">{label}</div>
                   <div className="text-slate-400 text-xs">{desc}</div>
                 </div>
-                {toggle ? (
-                  <div className="w-10 h-6 bg-blue-600 rounded-full relative cursor-pointer">
-                    <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
-                  </div>
-                ) : (
-                  <span className="text-slate-300">›</span>
-                )}
+                <span className="text-slate-300">›</span>
               </div>
             ))}
 
