@@ -22,10 +22,10 @@ export default () => ({
     model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     whisperModel: process.env.GROQ_WHISPER_MODEL || 'whisper-large-v3',
   },
-  // ElevenLabs — native Finnish TTS (elevenlabs.io)
-  elevenlabs: {
-    apiKey: process.env.ELEVENLABS_API_KEY,
-    voiceId: process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB',
+  // Google Cloud TTS — Finnish WaveNet voice (console.cloud.google.com)
+  google: {
+    ttsApiKey: process.env.GOOGLE_TTS_API_KEY,
+    ttsVoice: process.env.GOOGLE_TTS_VOICE || 'fi-FI-Wavenet-A',
   },
   // Cloudinary — free storage (cloudinary.com)
   cloudinary: {

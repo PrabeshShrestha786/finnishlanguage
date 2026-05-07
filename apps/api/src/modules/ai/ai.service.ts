@@ -180,7 +180,7 @@ Respond ONLY with valid JSON:
     return JSON.parse(completion.choices[0].message.content || '{}');
   }
 
-  private addNaturalPauses(text: string): string {
+  private buildSsml(text: string): string {
     const escaped = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -195,27 +195,24 @@ Respond ONLY with valid JSON:
   }
 
   async textToSpeech(text: string): Promise<Buffer> {
-    const apiKey = this.config.get<string>('elevenlabs.apiKey');
-    if (!apiKey) throw new Error('ELEVENLABS_API_KEY is not configured');
-    const voiceId = this.config.get<string>('elevenlabs.voiceId') || 'pNInz6obpgDQGcFmaJgB';
+    const apiKey = this.config.get<string>('google.ttsApiKey');
+    if (!apiKey) throw new Error('GOOGLE_TTS_API_KEY is not configured');
+    const voiceName = this.config.get<string>('google.ttsVoice') || 'fi-FI-Wavenet-A';
 
     const body = JSON.stringify({
-      text: this.addNaturalPauses(text),
-      model_id: 'eleven_multilingual_v2',
-      enable_ssml_parsing: true,
-      voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.9 },
+      input: { ssml: this.buildSsml(text) },
+      voice: { languageCode: 'fi-FI', name: voiceName },
+      audioConfig: { audioEncoding: 'MP3', speakingRate: 0.9 },
     });
 
     return new Promise((resolve, reject) => {
       const req = https.request(
         {
-          hostname: 'api.elevenlabs.io',
-          path: `/v1/text-to-speech/${voiceId}`,
+          hostname: 'texttospeech.googleapis.com',
+          path: `/v1/text:synthesize?key=${apiKey}`,
           method: 'POST',
           headers: {
-            'xi-api-key': apiKey,
             'Content-Type': 'application/json',
-            'Accept': 'audio/mpeg',
             'Content-Length': Buffer.byteLength(body),
           },
         },
@@ -223,12 +220,13 @@ Respond ONLY with valid JSON:
           const chunks: Buffer[] = [];
           res.on('data', (chunk: Buffer) => chunks.push(chunk));
           res.on('end', () => {
-            const buf = Buffer.concat(chunks);
+            const raw = Buffer.concat(chunks).toString();
             if (res.statusCode !== 200) {
-              reject(new Error(`ElevenLabs TTS error ${res.statusCode}: ${buf.toString()}`));
-            } else {
-              resolve(buf);
+              reject(new Error(`Google TTS error ${res.statusCode}: ${raw}`));
+              return;
             }
+            const json = JSON.parse(raw);
+            resolve(Buffer.from(json.audioContent, 'base64'));
           });
         },
       );
