@@ -181,8 +181,12 @@ Respond ONLY with valid JSON:
   }
 
   private addNaturalPauses(text: string): string {
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     return '<speak>' +
-      text
+      escaped
         .replace(/\n\n+/g, '<break time="900ms"/>')
         .replace(/\n/g, '<break time="500ms"/>')
         .replace(/([.!?])\s+/g, '$1<break time="650ms"/> ')
