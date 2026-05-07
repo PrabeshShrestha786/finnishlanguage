@@ -20,6 +20,11 @@ export class VocabularyController {
     return this.vocabService.getCategories();
   }
 
+  @Get('favorites')
+  getFavorites(@Request() req: any) {
+    return this.vocabService.getFavorites(req.user.sub);
+  }
+
   @Get('flashcards')
   getDueFlashcards(@Request() req: any, @Query('limit') limit?: number, @Query('category') category?: string, @Query('level') level?: string) {
     return this.vocabService.getDueFlashcards(req.user.sub, limit, category, level);

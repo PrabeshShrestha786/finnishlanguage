@@ -3,13 +3,14 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Volume2, RotateCcw, CheckCircle2, Brain, Zap, BookOpen, Star, ChevronRight, RefreshCw } from 'lucide-react';
+import { Volume2, RotateCcw, CheckCircle2, Brain, Zap, BookOpen, Star, ChevronRight, RefreshCw, Heart } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
   { id: 'all',          label: 'All Words',  emoji: '📚' },
+  { id: 'Favorites',    label: 'Favorites',  emoji: '❤️' },
   { id: 'Greetings',    label: 'Greetings',  emoji: '👋' },
   { id: 'Food & Drink', label: 'Food',       emoji: '🍽️' },
   { id: 'Travel',       label: 'Travel',     emoji: '✈️' },
@@ -41,12 +42,14 @@ interface Word {
   level: string;
 }
 
-function FlashCard({ word, onRate, index, total, isExtraPractice }: {
+function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, onToggleFavorite }: {
   word: Word;
   onRate: (quality: number) => void;
   index: number;
   total: number;
   isExtraPractice: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   const [flipped, setFlipped] = useState(false);
 
@@ -91,6 +94,12 @@ function FlashCard({ word, onRate, index, total, isExtraPractice }: {
             className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg"
             style={{ backfaceVisibility: 'hidden' }}
           >
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className="absolute top-4 right-4 p-1.5 rounded-full transition-colors hover:bg-white/10"
+            >
+              <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-400 text-red-400' : 'text-blue-300'}`} />
+            </button>
             <div className="text-5xl font-black text-white mb-2 tracking-tight text-center">{word.finnish}</div>
             {word.pronunciation && (
               <div className="text-blue-200 font-mono text-sm mb-3">[{word.pronunciation}]</div>
@@ -171,6 +180,7 @@ export default function VocabularyPage() {
   const [cardIdx, setCardIdx] = useState(0);
   const [goodCount, setGoodCount] = useState(0);
   const [summary, setSummary] = useState<{ total: number; correct: number; xp: number; category: string } | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -200,14 +210,21 @@ export default function VocabularyPage() {
   });
 
   const { data: wordsData, isLoading: loadingWords } = useQuery({
-    queryKey: ['vocab-words', category, level],
-    queryFn: () => api.get('/vocabulary', {
-      params: {
-        limit: 50,
-        ...(category !== 'all' ? { category } : {}),
-        ...(level !== 'all' ? { level } : {}),
-      },
-    }).then((r) => r.data.data).catch(() => null),
+    queryKey: category === 'Favorites' ? ['vocab-favorites'] : ['vocab-words', category, level],
+    queryFn: () => {
+      if (category === 'Favorites') {
+        return api.get('/vocabulary/favorites')
+          .then((r) => ({ words: r.data.data, total: r.data.data.length }))
+          .catch(() => null);
+      }
+      return api.get('/vocabulary', {
+        params: {
+          limit: 50,
+          ...(category !== 'all' ? { category } : {}),
+          ...(level !== 'all' ? { level } : {}),
+        },
+      }).then((r) => r.data.data).catch(() => null);
+    },
     staleTime: 60_000,
   });
 
@@ -222,11 +239,32 @@ export default function VocabularyPage() {
     },
   });
 
+  const favoriteMutation = useMutation({
+    mutationFn: (wordId: string) => api.post(`/vocabulary/${wordId}/favorite`),
+    onSuccess: (_data, wordId) => {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        next.has(wordId) ? next.delete(wordId) : next.add(wordId);
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ['vocab-favorites'] });
+    },
+  });
+
   const mapWord = (w: any): Word => ({
     id: w.id, finnish: w.finnish, english: w.english,
     pronunciation: w.pronunciation, exampleSentence: w.exampleSentence,
     exampleTranslation: w.exampleTranslation, category: w.category, level: w.level,
   });
+
+  // Seed favoriteIds from progress data when it loads
+  useEffect(() => {
+    if (!flashcardData?.flashcards) return;
+    const ids = new Set<string>(
+      flashcardData.flashcards.filter((p: any) => p.isFavorite).map((p: any) => p.wordId as string)
+    );
+    setFavoriteIds(ids);
+  }, [flashcardData]);
 
   // Build card deck: SRS due cards first, then fall back to all words for extra practice
   const srsCards: Word[] = (() => {
@@ -399,8 +437,8 @@ export default function VocabularyPage() {
           ))}
         </div>
 
-        {/* Level filter */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Level filter — hidden on Favorites */}
+        <div className={`flex gap-2 flex-wrap ${category === 'Favorites' ? 'hidden' : ''}`}>
           {LEVELS.map((l) => (
             <button
               key={l.id}
@@ -540,6 +578,8 @@ export default function VocabularyPage() {
                 index={cardIdx}
                 total={allCards.length}
                 isExtraPractice={isExtraPractice}
+                isFavorite={favoriteIds.has(currentWord.id)}
+                onToggleFavorite={() => favoriteMutation.mutate(currentWord.id)}
               />
             </motion.div>
           </AnimatePresence>

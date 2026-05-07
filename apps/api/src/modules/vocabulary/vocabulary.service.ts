@@ -108,6 +108,14 @@ export class VocabularyService {
     return { words, nativeLanguage: user?.nativeLanguage || 'ENGLISH' };
   }
 
+  async getFavorites(userId: string) {
+    const favorites = await this.prisma.vocabProgress.findMany({
+      where: { userId, isFavorite: true },
+      include: { word: true },
+    });
+    return favorites.map((f) => f.word);
+  }
+
   async getCategories() {
     const counts = await this.prisma.vocabWord.groupBy({
       by: ['category'],
