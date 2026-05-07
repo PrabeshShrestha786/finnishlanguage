@@ -1,7 +1,8 @@
 import {
   Controller, Post, Get, Delete, Body, Param, UseGuards, Request,
-  UploadedFile, UseInterceptors, Query, UsePipes, ValidationPipe,
+  UploadedFile, UseInterceptors, Query, UsePipes, ValidationPipe, Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { AiService } from './ai.service';
@@ -35,6 +36,15 @@ export class AiController {
   @ApiOperation({ summary: 'Translate text' })
   translate(@Body() body: { text: string; from: string; to: string; context?: string }) {
     return this.aiService.translate(body.text, body.from, body.to, body.context);
+  }
+
+  @Post('tts')
+  @ApiOperation({ summary: 'Text to speech with native Finnish voice (ElevenLabs)' })
+  async textToSpeech(@Body() body: { text: string }, @Res() res: Response) {
+    const audio = await this.aiService.textToSpeech(body.text);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', audio.length);
+    res.send(audio);
   }
 
   @Post('stt')
@@ -85,6 +95,24 @@ export class AiController {
   @ApiOperation({ summary: 'Get all saved AI stories for the current user' })
   getUserStories(@Request() req: any) {
     return this.aiService.getUserStories(req.user.sub);
+  }
+
+  @Get('listening-tracks')
+  @ApiOperation({ summary: 'Get saved AI listening tracks for the current user' })
+  getUserListeningTracks(@Request() req: any) {
+    return this.aiService.getUserListeningTracks(req.user.sub);
+  }
+
+  @Post('listening-tracks')
+  @ApiOperation({ summary: 'Save a generated listening track' })
+  saveListeningTrack(@Body() body: any, @Request() req: any) {
+    return this.aiService.saveListeningTrack(req.user.sub, body);
+  }
+
+  @Delete('listening-tracks/:id')
+  @ApiOperation({ summary: 'Delete a saved listening track' })
+  deleteListeningTrack(@Param('id') id: string, @Request() req: any) {
+    return this.aiService.deleteListeningTrack(req.user.sub, id);
   }
 
   @Post('stories')

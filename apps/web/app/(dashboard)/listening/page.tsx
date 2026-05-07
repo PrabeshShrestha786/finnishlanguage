@@ -1,10 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, useCallback } from 'react';
-import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock, Loader2, Wand2, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const TRACKS = [
   {
@@ -111,6 +112,7 @@ const LEVEL_COLORS: Record<string, string> = {
   B1: 'bg-violet-100 text-violet-700',
 };
 
+type Track = typeof TRACKS[0];
 type ViewState = 'list' | 'player' | 'result';
 
 function AudioWave({ playing }: { playing: boolean }) {
@@ -135,68 +137,161 @@ function AudioWave({ playing }: { playing: boolean }) {
   );
 }
 
+const LEVEL_COLORS_GRADIENT: Record<string, string> = {
+  A1: 'from-purple-500 to-violet-600',
+  A2: 'from-pink-500 to-rose-600',
+  B1: 'from-blue-500 to-indigo-600',
+  B2: 'from-emerald-400 to-teal-500',
+};
+
 export default function ListeningPage() {
   const { user, updateUser } = useAuthStore();
   const [view, setView] = useState<ViewState>('list');
-  const [selectedTrack, setSelectedTrack] = useState<typeof TRACKS[0] | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [loadingAudio, setLoadingAudio] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [quizMode, setQuizMode] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [genLevel, setGenLevel] = useState<'A1' | 'A2' | 'B1' | 'B2'>('A1');
+  const [generating, setGenerating] = useState(false);
+  const [generatedTracks, setGeneratedTracks] = useState<(Track & { dbId?: string })[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(true);
 
-  const speakTrack = useCallback((track: typeof TRACKS[0]) => {
-    if (typeof window === 'undefined') return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(track.transcript);
-    utter.lang = 'fi-FI';
-    utter.rate = 0.85;
-    utter.onstart = () => setPlaying(true);
-    utter.onend = () => { setPlaying(false); setProgress(100); };
-    utteranceRef.current = utter;
-    window.speechSynthesis.speak(utter);
+  useEffect(() => {
+    api.get('/ai/listening-tracks')
+      .then((res) => {
+        const data = res.data.data ?? res.data;
+        const tracks: (Track & { dbId?: string })[] = (Array.isArray(data) ? data : []).map((t: any) => ({
+          id: t.id,
+          dbId: t.id,
+          title: t.title,
+          titleEn: t.titleEn,
+          level: t.level,
+          duration: '~2:00',
+          xp: t.xp,
+          color: t.color,
+          category: t.category,
+          transcript: t.text,
+          questions: t.questions as Track['questions'],
+        }));
+        setGeneratedTracks(tracks);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingTracks(false));
+  }, []);
 
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    const totalMs = track.transcript.length * 55;
-    const start = Date.now();
-    intervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const pct = Math.min(100, (elapsed / totalMs) * 100);
-      setProgress(pct);
-      if (pct >= 100 && intervalRef.current) clearInterval(intervalRef.current);
-    }, 100);
+  const deleteGeneratedTrack = async (dbId: string) => {
+    setGeneratedTracks((prev) => prev.filter((t) => t.dbId !== dbId));
+    try { await api.delete(`/ai/listening-tracks/${dbId}`); } catch {}
+  };
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCacheRef = useRef<Map<number, string>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      audioCacheRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  const loadAndPlayTrack = useCallback(async (track: typeof TRACKS[0]) => {
+    const startAudio = (url: string) => {
+      if (audioRef.current) audioRef.current.pause();
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.ontimeupdate = () => {
+        if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
+      };
+      audio.onended = () => { setPlaying(false); setProgress(100); };
+      audio.play();
+      setPlaying(true);
+    };
+
+    const cached = audioCacheRef.current.get(track.id);
+    if (cached) { startAudio(cached); return; }
+
+    setLoadingAudio(true);
+    try {
+      const response = await api.post('/ai/tts', { text: track.transcript }, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      audioCacheRef.current.set(track.id, url);
+      startAudio(url);
+    } catch (err) {
+      console.error('TTS failed:', err);
+      setPlaying(false);
+    } finally {
+      setLoadingAudio(false);
+    }
   }, []);
 
   const togglePlay = () => {
     if (!selectedTrack) return;
     if (playing) {
-      window.speechSynthesis.pause();
+      audioRef.current?.pause();
       setPlaying(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    } else if (audioRef.current && progress > 0 && progress < 100) {
+      audioRef.current.play();
+      setPlaying(true);
     } else {
-      if (progress > 0 && progress < 100) {
-        window.speechSynthesis.resume();
-        setPlaying(true);
-      } else {
-        setProgress(0);
-        speakTrack(selectedTrack);
-      }
+      setProgress(0);
+      loadAndPlayTrack(selectedTrack);
     }
   };
 
   const restartTrack = () => {
-    window.speechSynthesis.cancel();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setProgress(0);
     setPlaying(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (selectedTrack) speakTrack(selectedTrack);
+    if (selectedTrack) loadAndPlayTrack(selectedTrack);
   };
 
-  const openTrack = (track: typeof TRACKS[0]) => {
+  const generateTrack = async () => {
+    setGenerating(true);
+    try {
+      const res = await api.post('/ai/reading/generate', { level: genLevel });
+      const data = res.data.data ?? res.data;
+      const questions = (data.questions as any[]).slice(0, 4).map((q: any) => ({
+        q: q.q, options: q.options as string[], correct: q.correct as number,
+      }));
+      const saved = await api.post('/ai/listening-tracks', {
+        title: data.title,
+        titleEn: data.titleEn,
+        level: genLevel,
+        xp: data.xp ?? 50,
+        color: LEVEL_COLORS_GRADIENT[genLevel],
+        category: data.category ?? 'AI Generated',
+        transcript: data.text,
+        questions,
+      });
+      const savedData = saved.data.data ?? saved.data;
+      const track: Track & { dbId?: string } = {
+        id: savedData.id,
+        dbId: savedData.id,
+        title: savedData.title,
+        titleEn: savedData.titleEn,
+        level: genLevel,
+        duration: '~2:00',
+        xp: savedData.xp,
+        color: savedData.color,
+        category: savedData.category,
+        transcript: savedData.text,
+        questions,
+      };
+      setGeneratedTracks((prev) => [track, ...prev]);
+      openTrack(track);
+    } catch {
+      toast.error('Failed to generate track. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const openTrack = (track: Track) => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setSelectedTrack(track);
     setView('player');
     setPlaying(false);
@@ -235,22 +330,91 @@ export default function ListeningPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Listening Practice</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Listen to Finnish audio and test your comprehension</p>
-        </div>
-        <div className="hidden md:flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-xl px-4 py-2">
-          <Headphones className="w-4 h-4 text-violet-600" />
-          <span className="text-violet-700 text-sm font-semibold">{TRACKS.length} Tracks Available</span>
-        </div>
-      </motion.div>
-
       <AnimatePresence mode="wait">
 
         {/* TRACK LIST */}
         {view === 'list' && (
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+            {/* AI Generate Card */}
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-5 mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-slate-800 font-bold flex items-center gap-2 text-sm">
+                    <Wand2 className="w-4 h-4 text-violet-600" />
+                    Generate AI Listening Track
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-0.5">AI creates a brand-new Finnish audio track at your chosen level</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex gap-1">
+                    {(['A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
+                      <button key={lvl} onClick={() => setGenLevel(lvl)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          genLevel === lvl
+                            ? 'bg-violet-600 text-white shadow-sm'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                        }`}>
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={generateTrack} disabled={generating}
+                    className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
+                    {generating
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Wand2 className="w-4 h-4" />}
+                    {generating ? 'Generating…' : 'Generate'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Generated Tracks */}
+            {generatedTracks.length > 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-5">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Wand2 className="w-3.5 h-3.5" /> Your Generated Tracks
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {generatedTracks.map((track, i) => (
+                    <motion.div key={track.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.07 }} whileHover={{ y: -3 }}
+                      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden group relative">
+                      <div className={`h-2 bg-gradient-to-r ${track.color}`} />
+                      <div className="p-5 cursor-pointer" onClick={() => openTrack(track)}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[track.level]}`}>{track.level}</span>
+                              <span className="text-xs text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1"><Wand2 className="w-2.5 h-2.5" />AI</span>
+                            </div>
+                            <h3 className="text-slate-800 font-black text-base">{track.title}</h3>
+                            <p className="text-slate-500 text-xs">{track.titleEn}</p>
+                          </div>
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${track.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
+                            <Play className="w-5 h-5 text-white fill-white" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                          <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{track.duration}</div>
+                          <div className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-amber-400" />+{track.xp} XP</div>
+                          <div className="flex items-center gap-1"><Volume2 className="w-3.5 h-3.5" />{track.questions.length} questions</div>
+                        </div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); if (track.dbId) deleteGeneratedTrack(track.dbId); }}
+                        className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 hover:text-red-500 text-slate-400 transition-all opacity-0 group-hover:opacity-100">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Static Tracks */}
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Featured Tracks</h3>
             <div className="grid md:grid-cols-2 gap-4">
               {TRACKS.map((track, i) => (
                 <motion.div
@@ -288,7 +452,7 @@ export default function ListeningPage() {
             </div>
             <div className="mt-4 p-4 bg-violet-50 border border-violet-100 rounded-xl text-sm text-violet-700 flex items-center gap-2">
               <Volume2 className="w-4 h-4 flex-shrink-0" />
-              Audio uses your device&apos;s text-to-speech. Make sure your volume is on and Finnish language is installed for best results.
+              Audio is generated by a native Finnish AI voice. First play may take a few seconds to load.
             </div>
           </motion.div>
         )}
@@ -296,7 +460,7 @@ export default function ListeningPage() {
         {/* PLAYER VIEW */}
         {view === 'player' && selectedTrack && !quizMode && (
           <motion.div key="player" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-2xl mx-auto space-y-4">
-            <button onClick={() => { window.speechSynthesis.cancel(); setView('list'); }} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
+            <button onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setView('list'); }} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
               ← Back to tracks
             </button>
 
@@ -321,8 +485,14 @@ export default function ListeningPage() {
                       <button onClick={restartTrack} className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all">
                         <RotateCcw className="w-4 h-4" />
                       </button>
-                      <button onClick={togglePlay} className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-                        {playing
+                      <button
+                        onClick={togglePlay}
+                        disabled={loadingAudio}
+                        className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      >
+                        {loadingAudio
+                          ? <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                          : playing
                           ? <Pause className="w-6 h-6 text-violet-600" />
                           : <Play className="w-6 h-6 text-violet-600 fill-violet-600 ml-0.5" />
                         }
@@ -350,7 +520,7 @@ export default function ListeningPage() {
 
                 <motion.button
                   whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                  onClick={() => { setQuizMode(true); setCurrentQ(0); setAnswers([]); setSelected(null); window.speechSynthesis.cancel(); }}
+                  onClick={() => { if (audioRef.current) { audioRef.current.pause(); } setQuizMode(true); setCurrentQ(0); setAnswers([]); setSelected(null); }}
                   className="btn-primary w-full py-3 text-sm"
                 >
                   Answer Comprehension Questions →

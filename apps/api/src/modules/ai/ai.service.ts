@@ -1,3 +1,4 @@
+import * as https from 'node:https';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
@@ -179,6 +180,60 @@ Respond ONLY with valid JSON:
     return JSON.parse(completion.choices[0].message.content || '{}');
   }
 
+  private addNaturalPauses(text: string): string {
+    return '<speak>' +
+      text
+        .replace(/\n\n+/g, '<break time="900ms"/>')
+        .replace(/\n/g, '<break time="500ms"/>')
+        .replace(/([.!?])\s+/g, '$1<break time="650ms"/> ')
+        .replace(/,\s+/g, ',<break time="200ms"/> ')
+      + '</speak>';
+  }
+
+  async textToSpeech(text: string): Promise<Buffer> {
+    const apiKey = this.config.get<string>('elevenlabs.apiKey');
+    if (!apiKey) throw new Error('ELEVENLABS_API_KEY is not configured');
+    const voiceId = this.config.get<string>('elevenlabs.voiceId') || 'pNInz6obpgDQGcFmaJgB';
+
+    const body = JSON.stringify({
+      text: this.addNaturalPauses(text),
+      model_id: 'eleven_multilingual_v2',
+      enable_ssml_parsing: true,
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.9 },
+    });
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(
+        {
+          hostname: 'api.elevenlabs.io',
+          path: `/v1/text-to-speech/${voiceId}`,
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+            'Content-Length': Buffer.byteLength(body),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => {
+            const buf = Buffer.concat(chunks);
+            if (res.statusCode !== 200) {
+              reject(new Error(`ElevenLabs TTS error ${res.statusCode}: ${buf.toString()}`));
+            } else {
+              resolve(buf);
+            }
+          });
+        },
+      );
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+  }
+
   async speechToText(audioBuffer: Buffer): Promise<string> {
     // Groq's Whisper is free and fast
     const file = new File([new Uint8Array(audioBuffer)], 'audio.webm', { type: 'audio/webm' });
@@ -199,11 +254,12 @@ Respond ONLY with valid JSON:
         {
           role: 'system',
           content: `You are a Finnish pronunciation evaluator. Compare what was said vs what should have been said.
+All scores MUST be integers from 0 to 100 (not decimals, not fractions — whole numbers only).
 Respond ONLY with valid JSON:
 {
-  "pronunciationScore": number,
-  "fluencyScore": number,
-  "accuracyScore": number,
+  "pronunciationScore": integer 0-100,
+  "fluencyScore": integer 0-100,
+  "accuracyScore": integer 0-100,
   "transcribed": "string",
   "feedback": "string",
   "improvements": ["string"]
@@ -717,7 +773,7 @@ Respond ONLY with valid JSON:
 
   async getUserStories(userId: string) {
     return this.prisma.userStory.findMany({
-      where: { userId },
+      where: { userId, source: 'reading' },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -738,6 +794,7 @@ Respond ONLY with valid JSON:
         vocab: story.vocab,
         questions: story.questions,
         xp: story.xp || 40,
+        source: 'reading',
       },
     });
   }
@@ -746,6 +803,41 @@ Respond ONLY with valid JSON:
     const story = await this.prisma.userStory.findFirst({ where: { id: storyId, userId } });
     if (!story) throw new Error('Story not found');
     await this.prisma.userStory.delete({ where: { id: storyId } });
+    return { deleted: true };
+  }
+
+  async getUserListeningTracks(userId: string) {
+    return this.prisma.userStory.findMany({
+      where: { userId, source: 'listening' },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async saveListeningTrack(userId: string, track: {
+    title: string; titleEn: string; level: string; category: string;
+    color: string; transcript: string; questions: any; xp: number;
+  }) {
+    return this.prisma.userStory.create({
+      data: {
+        userId,
+        title: track.title,
+        titleEn: track.titleEn || '',
+        level: track.level as any,
+        category: track.category || 'AI Generated',
+        color: track.color,
+        text: track.transcript,
+        vocab: [],
+        questions: track.questions,
+        xp: track.xp || 50,
+        source: 'listening',
+      },
+    });
+  }
+
+  async deleteListeningTrack(userId: string, trackId: string) {
+    const track = await this.prisma.userStory.findFirst({ where: { id: trackId, userId, source: 'listening' } });
+    if (!track) throw new Error('Track not found');
+    await this.prisma.userStory.delete({ where: { id: trackId } });
     return { deleted: true };
   }
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Play, Volume2, RefreshCw, ChevronRight, Star, Zap, CheckCircle2, Info } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Mic, MicOff, Play, Volume2, RefreshCw, ChevronRight, Star, Zap, CheckCircle2, Info, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 
@@ -44,17 +44,36 @@ export default function SpeakingPage() {
   const [state, setState] = useState<RecordState>('idle');
   const [score, setScore] = useState<any>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [loadingTTS, setLoadingTTS] = useState(false);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsCacheRef = useRef<Map<string, string>>(new Map());
   const phrase = PHRASES[phraseIdx];
 
-  const speakPhrase = () => {
-    if (!window.speechSynthesis) return;
-    const utter = new SpeechSynthesisUtterance(phrase.fi);
-    utter.lang = 'fi-FI';
-    utter.rate = 0.8;
-    window.speechSynthesis.speak(utter);
-  };
+  useEffect(() => {
+    return () => { ttsAudioRef.current?.pause(); };
+  }, []);
+
+  const speakPhrase = useCallback(async () => {
+    const cached = ttsCacheRef.current.get(phrase.fi);
+    const play = (url: string) => {
+      if (ttsAudioRef.current) ttsAudioRef.current.pause();
+      const audio = new Audio(url);
+      ttsAudioRef.current = audio;
+      audio.play();
+    };
+    if (cached) { play(cached); return; }
+    setLoadingTTS(true);
+    try {
+      const res = await api.post('/ai/tts', { text: phrase.fi }, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      ttsCacheRef.current.set(phrase.fi, url);
+      play(url);
+    } catch { /* silent fail */ } finally {
+      setLoadingTTS(false);
+    }
+  }, [phrase.fi]);
 
   const startRecording = async () => {
     try {
@@ -113,12 +132,12 @@ export default function SpeakingPage() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-glow-green">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm">
             <Mic className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">Speaking Practice</h1>
-            <p className="text-slate-400 text-sm">AI pronunciation coaching powered by Groq Whisper</p>
+            <h1 className="text-2xl font-black text-slate-800">Speaking Practice</h1>
+            <p className="text-slate-500 text-sm">AI pronunciation coaching powered by Groq Whisper</p>
           </div>
         </div>
       </motion.div>
@@ -126,13 +145,13 @@ export default function SpeakingPage() {
       {/* Progress */}
       <div className="flex gap-2">
         {PHRASES.map((_, i) => (
-          <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i < phraseIdx ? 'bg-aurora-green' : i === phraseIdx ? 'bg-finn-500' : 'bg-white/10'}`} />
+          <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i < phraseIdx ? 'bg-emerald-400' : i === phraseIdx ? 'bg-finn-500' : 'bg-slate-200'}`} />
         ))}
       </div>
 
       {/* Phrase Card */}
       <motion.div key={phraseIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-3xl p-8 bg-speaking text-center">
+        className="rounded-3xl p-8 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
         <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-3 py-1 rounded-full text-aurora-green text-xs font-bold mb-6">
           {phrase.level} · Phrase {phraseIdx + 1} of {PHRASES.length}
         </div>
@@ -145,9 +164,11 @@ export default function SpeakingPage() {
         </div>
 
         {/* Listen Button */}
-        <button onClick={speakPhrase}
-          className="inline-flex items-center gap-2 btn-secondary px-5 py-2.5 text-sm mb-8">
-          <Volume2 className="w-4 h-4 text-aurora-green" />
+        <button onClick={speakPhrase} disabled={loadingTTS}
+          className="inline-flex items-center gap-2 btn-secondary px-5 py-2.5 text-sm mb-8 disabled:opacity-60 disabled:cursor-not-allowed">
+          {loadingTTS
+            ? <Loader2 className="w-4 h-4 text-aurora-green animate-spin" />
+            : <Volume2 className="w-4 h-4 text-aurora-green" />}
           Listen to pronunciation
         </button>
 
@@ -189,10 +210,10 @@ export default function SpeakingPage() {
 
           {state === 'processing' && (
             <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
-              <div className="w-24 h-24 rounded-full bg-finn-700/30 border-2 border-finn-500/50 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-finn-500/20 border-2 border-finn-500/50 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-finn-500 border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-finn-400 font-semibold">Analyzing pronunciation...</p>
+              <p className="text-finn-300 font-semibold">Analyzing pronunciation...</p>
             </motion.div>
           )}
 
@@ -203,16 +224,19 @@ export default function SpeakingPage() {
                   { label: 'Pronunciation', score: score.pronunciationScore, color: '#00ffa3' },
                   { label: 'Fluency', score: score.fluencyScore, color: '#9b59ff' },
                   { label: 'Accuracy', score: score.accuracyScore, color: '#3b6ef8' },
-                ].map((s) => (
-                  <div key={s.label} className="flex flex-col items-center gap-2">
-                    <CircularProgress score={Math.round(s.score)} color={s.color} />
-                    <span className="text-slate-400 text-xs font-medium">{s.label}</span>
-                  </div>
-                ))}
+                ].map((s) => {
+                  const normalized = s.score <= 1 ? Math.round(s.score * 100) : Math.round(s.score);
+                  return (
+                    <div key={s.label} className="flex flex-col items-center gap-2">
+                      <CircularProgress score={normalized} color={s.color} />
+                      <span className="text-slate-400 text-xs font-medium">{s.label}</span>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="glass-light rounded-2xl p-4 text-left mb-4 border border-white/10">
-                <p className="text-slate-300 text-sm leading-relaxed">{score.feedback}</p>
+              <div className="bg-white/10 rounded-2xl p-4 text-left mb-4 border border-white/20">
+                <p className="text-slate-200 text-sm leading-relaxed">{score.feedback}</p>
               </div>
 
               {score.improvements?.length > 0 && (
@@ -240,9 +264,9 @@ export default function SpeakingPage() {
       </motion.div>
 
       {/* Tips */}
-      <div className="glass-card rounded-3xl p-5">
-        <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-          <Star className="w-4 h-4 text-aurora-yellow" /> Finnish Pronunciation Tips
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h3 className="text-slate-800 font-bold mb-3 flex items-center gap-2">
+          <Star className="w-4 h-4 text-amber-400" /> Finnish Pronunciation Tips
         </h3>
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -251,8 +275,8 @@ export default function SpeakingPage() {
             { tip: 'Stress is always on the FIRST syllable' },
             { tip: '"Y" is a vowel, sounds like German "ü"' },
           ].map((t) => (
-            <div key={t.tip} className="flex items-start gap-2 text-xs text-slate-400">
-              <CheckCircle2 className="w-3.5 h-3.5 text-aurora-green mt-0.5 flex-shrink-0" />
+            <div key={t.tip} className="flex items-start gap-2 text-xs text-slate-600">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
               {t.tip}
             </div>
           ))}

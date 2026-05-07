@@ -681,10 +681,12 @@ model UserStory {
   vocab     Json
   questions Json
   xp        Int          @default(40)
+  source    String       @default("reading")
   createdAt DateTime     @default(now())
 
   @@index([userId])
   @@index([userId, level])
+  @@index([userId, source])
 }
 
 // ─── AUDIO FILES ──────────────────────────────────────────────────────────────

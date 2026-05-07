@@ -22,6 +22,11 @@ export default () => ({
     model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     whisperModel: process.env.GROQ_WHISPER_MODEL || 'whisper-large-v3',
   },
+  // ElevenLabs — native Finnish TTS (elevenlabs.io)
+  elevenlabs: {
+    apiKey: process.env.ELEVENLABS_API_KEY,
+    voiceId: process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB',
+  },
   // Cloudinary — free storage (cloudinary.com)
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
