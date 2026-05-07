@@ -167,6 +167,7 @@ function FlashCard({ word, onRate, index, total, isExtraPractice }: {
 export default function VocabularyPage() {
   const [view, setView] = useState<View>('categories');
   const [category, setCategory] = useState('all');
+  const [level, setLevel] = useState('all');
   const [cardIdx, setCardIdx] = useState(0);
   const [goodCount, setGoodCount] = useState(0);
   const { user, updateUser } = useAuthStore();
@@ -185,18 +186,26 @@ export default function VocabularyPage() {
   });
 
   const { data: flashcardData, isLoading: loadingCards } = useQuery({
-    queryKey: ['vocab-flashcards', category],
+    queryKey: ['vocab-flashcards', category, level],
     queryFn: () => api.get('/vocabulary/flashcards', {
-      params: { limit: 20, ...(category !== 'all' ? { category } : {}) },
+      params: {
+        limit: 20,
+        ...(category !== 'all' ? { category } : {}),
+        ...(level !== 'all' ? { level } : {}),
+      },
     }).then((r) => r.data.data).catch(() => null),
     enabled: view === 'flashcard',
     staleTime: 60_000,
   });
 
   const { data: wordsData, isLoading: loadingWords } = useQuery({
-    queryKey: ['vocab-words', category],
+    queryKey: ['vocab-words', category, level],
     queryFn: () => api.get('/vocabulary', {
-      params: { limit: 50, ...(category !== 'all' ? { category } : {}) },
+      params: {
+        limit: 50,
+        ...(category !== 'all' ? { category } : {}),
+        ...(level !== 'all' ? { level } : {}),
+      },
     }).then((r) => r.data.data).catch(() => null),
     staleTime: 60_000,
   });
@@ -257,6 +266,14 @@ export default function VocabularyPage() {
     setGoodCount(0);
   };
 
+  const LEVELS = [
+    { id: 'all', label: 'All Levels' },
+    { id: 'A1', label: 'A1 · Beginner' },
+    { id: 'A2', label: 'A2 · Elementary' },
+    { id: 'B1', label: 'B1 · Intermediate' },
+    { id: 'B2', label: 'B2 · Upper Intermediate' },
+  ];
+
   const handleRate = (quality: number) => {
     if (!currentWord) return;
     reviewMutation.mutate({ wordId: currentWord.id, quality });
@@ -279,6 +296,8 @@ export default function VocabularyPage() {
     setCardIdx(0);
     setGoodCount(0);
   };
+
+  const levelLabel = LEVELS.find((l) => l.id === level)?.label ?? 'All Levels';
 
   // ── CATEGORIES VIEW ──────────────────────────────────────────────────────────
   if (view === 'categories') {
@@ -313,6 +332,23 @@ export default function VocabularyPage() {
               <div className="text-2xl font-black text-slate-800">{s.value}</div>
               <div className="text-slate-400 text-xs">{s.label}</div>
             </motion.div>
+          ))}
+        </div>
+
+        {/* Level filter */}
+        <div className="flex gap-2 flex-wrap">
+          {LEVELS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLevel(l.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                level === l.id
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-blue-200 hover:text-blue-600'
+              }`}
+            >
+              {l.label}
+            </button>
           ))}
         </div>
 
@@ -400,7 +436,10 @@ export default function VocabularyPage() {
             {CATEGORIES.find((c) => c.id === category)?.emoji}{' '}
             {CATEGORIES.find((c) => c.id === category)?.label || 'All Words'}
           </div>
-          <div className="text-slate-400 text-xs">{goodCount} correct · +{goodCount * 2} XP earned</div>
+          <div className="text-slate-400 text-xs">
+            {level !== 'all' && <span className="text-blue-500 font-semibold mr-1">{level}</span>}
+            {goodCount} correct · +{goodCount * 2} XP earned
+          </div>
         </div>
         <button
           onClick={() => { setCardIdx(0); setGoodCount(0); }}

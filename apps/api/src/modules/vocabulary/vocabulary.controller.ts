@@ -21,8 +21,8 @@ export class VocabularyController {
   }
 
   @Get('flashcards')
-  getDueFlashcards(@Request() req: any, @Query('limit') limit?: number, @Query('category') category?: string) {
-    return this.vocabService.getDueFlashcards(req.user.sub, limit, category);
+  getDueFlashcards(@Request() req: any, @Query('limit') limit?: number, @Query('category') category?: string, @Query('level') level?: string) {
+    return this.vocabService.getDueFlashcards(req.user.sub, limit, category, level);
   }
 
   @Get('stats')
