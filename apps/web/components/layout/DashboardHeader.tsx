@@ -55,7 +55,7 @@ export default function DashboardHeader() {
       </button>
 
       {/* Avatar */}
-      <Link href="/profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden hover:shadow-md transition-all">
+      <Link href="/profile" className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden hover:shadow-md transition-all">
         {user?.avatar ? (
           <Image src={user.avatar} alt="" fill className="object-cover" />
         ) : (

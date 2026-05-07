@@ -121,7 +121,7 @@ export default function Sidebar() {
       <div className="p-2 border-t border-slate-100 space-y-0.5">
         <Link href="/profile">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {user?.avatar ? (
                 <Image src={user.avatar} alt="" fill className="object-cover" />
               ) : (

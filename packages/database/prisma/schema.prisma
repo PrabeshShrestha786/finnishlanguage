@@ -350,46 +350,71 @@ model Attempt {
 
 // ─── VOCABULARY ───────────────────────────────────────────────────────────────
 
-model VocabWord {
-  id              String    @id @default(cuid())
-  finnish         String    @unique
-  english         String
-  translation     Json
-  pronunciation   String?
-  audioUrl        String?
-  imageUrl        String?
-  partOfSpeech    String?
-  category        String?
-  level           FinnishLevel
-  exampleSentence String?
-  exampleTranslation String?
-  tags            String[]
-  createdAt       DateTime  @default(now())
+model VocabSet {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  category      String
+  level         FinnishLevel
+  emoji         String       @default("📚")
+  totalWords    Int          @default(0)
+  isAiGenerated Boolean      @default(false)
+  createdBy     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  progress        VocabProgress[]
+  words         VocabWord[]
+
+  @@index([category, level])
+}
+
+model VocabWord {
+  id                 String     @id @default(cuid())
+  finnish            String     @unique
+  english            String
+  translation        Json
+  pronunciation      String?
+  audioUrl           String?
+  imageUrl           String?
+  partOfSpeech       String?
+  category           String?
+  level              FinnishLevel
+  exampleSentence    String?
+  exampleTranslation String?
+  tags               String[]
+  setId              String?
+  set                VocabSet?  @relation(fields: [setId], references: [id], onDelete: SetNull)
+  createdAt          DateTime   @default(now())
+
+  progress           VocabProgress[]
 
   @@index([category])
   @@index([level])
+  @@index([setId])
 }
 
 model VocabProgress {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wordId          String
-  word            VocabWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
-  easeFactor      Float     @default(2.5)
-  interval        Int       @default(1)
-  repetitions     Int       @default(0)
-  nextReview      DateTime  @default(now())
-  lastReview      DateTime?
-  isLearned       Boolean   @default(false)
-  isFavorite      Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wordId        String
+  word          VocabWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  easeFactor    Float     @default(2.5)
+  interval      Int       @default(1)
+  repetitions   Int       @default(0)
+  nextReview    DateTime  @default(now())
+  lastReview    DateTime?
+  isLearned     Boolean   @default(false)
+  isFavorite    Boolean   @default(false)
+  successCount  Int       @default(0)
+  failureCount  Int       @default(0)
+  lastQuality   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([userId, wordId])
   @@index([userId, nextReview])
+  @@index([userId, easeFactor])
 }
 
 // ─── STREAK ───────────────────────────────────────────────────────────────────

@@ -1,13 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   User, Mail, Globe, GraduationCap, Camera, Save, Flame,
-  Zap, Trophy, BookOpen, CheckCircle2, Bell, Shield, LogOut,
+  Zap, Trophy, BookOpen, CheckCircle2, Bell, Shield, LogOut, Pencil, X,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -29,26 +29,50 @@ type Tab = typeof TABS[number];
 
 const BIO_MAX = 160;
 
-const getAchievements = (streak: number, xp: number) => [
-  { id: 1, title: 'First Step', desc: 'Earn your first XP', icon: '🎯', earned: xp > 0 },
-  { id: 2, title: 'Week Warrior', desc: '7-day streak', icon: '🔥', earned: streak >= 7 },
-  { id: 3, title: 'Vocabulary Master', desc: 'Learn 100 words', icon: '📚', earned: false },
-  { id: 4, title: 'Grammar Guru', desc: 'Complete all grammar modules', icon: '📐', earned: false },
-  { id: 5, title: 'Chatterbox', desc: 'Send 50 messages to AI tutor', icon: '💬', earned: false },
-  { id: 6, title: 'YKI Ready', desc: 'Pass a mock YKI exam', icon: '🎓', earned: false },
+const getAchievements = (streak: number, xp: number, words: number, chatMessages: number) => [
+  { id: 1, title: 'First Step',        desc: 'Earn your first XP',            icon: '🎯', earned: xp > 0 },
+  { id: 2, title: 'Week Warrior',      desc: '7-day streak',                  icon: '🔥', earned: streak >= 7 },
+  { id: 3, title: 'Vocabulary Master', desc: 'Learn 100 words',               icon: '📚', earned: words >= 100 },
+  { id: 4, title: 'Grammar Guru',      desc: 'Complete all grammar modules',  icon: '📐', earned: false },
+  { id: 5, title: 'Chatterbox',        desc: 'Send 50 messages to AI tutor',  icon: '💬', earned: chatMessages >= 50 },
+  { id: 6, title: 'YKI Ready',         desc: 'Pass a mock YKI exam',          icon: '🎓', earned: false },
 ];
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('Profile');
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notificationsOn, setNotificationsOn] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [rank, setRank] = useState<number | null>(null);
+  const [wordsStudied, setWordsStudied] = useState(0);
+  const [lessonsCompleted, setLessonsCompleted] = useState(0);
+  const [chatMessages, setChatMessages] = useState(0);
+
+  useEffect(() => {
+    api.get('/leaderboard/my-rank')
+      .then((r) => setRank(r.data.data?.allTimeRank ?? null))
+      .catch(() => {});
+    api.get('/users/dashboard')
+      .then((r) => {
+        const d = r.data.data;
+        setWordsStudied(d.wordsStudied || 0);
+        setLessonsCompleted(d.lessonsCompleted || 0);
+      })
+      .catch(() => {});
+    api.get('/users/profile')
+      .then((r) => setChatMessages(r.data.data?._count?.chatMessages || 0))
+      .catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     username: user?.username || '',
-    bio: (user as any)?.bio || '',
+    bio: user?.bio || '',
     nativeLanguage: user?.nativeLanguage || 'ENGLISH',
     finnishLevel: user?.finnishLevel || 'A1',
   });
@@ -60,7 +84,7 @@ export default function ProfilePage() {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       username: user?.username || '',
-      bio: (user as any)?.bio || '',
+      bio: user?.bio || '',
       nativeLanguage: user?.nativeLanguage || 'ENGLISH',
       finnishLevel: user?.finnishLevel || 'A1',
     });
@@ -73,16 +97,33 @@ export default function ProfilePage() {
   };
 
   const switchTab = (tab: Tab) => {
-    if (dirty && activeTab === 'Profile' && !confirm('You have unsaved changes. Leave without saving?')) return;
+    if (editMode && dirty && !confirm('You have unsaved changes. Leave without saving?')) return;
+    setEditMode(false);
+    setDirty(false);
     setActiveTab(tab);
+  };
+
+  const cancelEdit = () => {
+    setForm({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      username: user?.username || '',
+      bio: user?.bio || '',
+      nativeLanguage: user?.nativeLanguage || 'ENGLISH',
+      finnishLevel: user?.finnishLevel || 'A1',
+    });
+    setDirty(false);
+    setEditMode(false);
   };
 
   const saveProfile = async () => {
     setLoading(true);
     try {
-      const res = await api.patch('/users/profile', form);
+      const { bio: _bio, ...payload } = form;
+      const res = await api.patch('/users/profile', payload);
       updateUser(res.data.data);
       setDirty(false);
+      setEditMode(false);
       toast.success('Profile updated!');
     } catch {
       toast.error('Failed to update profile');
@@ -91,37 +132,102 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return; }
+    setAvatarLoading(true);
+    try {
+      // Resize to max 256×256 and compress to JPEG 0.85 before encoding
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const MAX = 256;
+          const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+          const canvas = document.createElement('canvas');
+          canvas.width  = Math.round(img.width  * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+      const res = await api.patch('/users/profile', { avatar: base64 });
+      updateUser(res.data.data);
+      toast.success('Avatar updated!');
+    } catch {
+      toast.error('Failed to update avatar');
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const nativeLang = LANGUAGES.find((l) => l.code === (user?.nativeLanguage || 'ENGLISH'));
-  const achievements = getAchievements(user?.currentStreak || 0, user?.totalXP || 0);
+  const achievements = getAchievements(user?.currentStreak || 0, user?.totalXP || 0, wordsStudied, chatMessages);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Profile Hero */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="h-24 bg-gradient-to-br from-blue-600 to-indigo-700 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-violet-600/50" />
+        {/* Aurora Borealis banner — Finland's Northern Lights */}
+        <div
+          className="h-24 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #0c1445 0%, #0f2356 35%, #0d3b2e 65%, #1a0e40 100%)' }}
+        >
+          {/* Aurora green sweep */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(170deg, transparent 15%, rgba(52,211,153,0.28) 42%, rgba(6,182,212,0.22) 58%, transparent 78%)' }} />
+          {/* Aurora violet sweep */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(210deg, transparent 25%, rgba(139,92,246,0.18) 52%, transparent 72%)' }} />
+          {/* Horizon glow */}
+          <div className="absolute bottom-0 left-0 right-0 h-8" style={{ background: 'linear-gradient(to top, rgba(52,211,153,0.12), transparent)' }} />
+
+          {/* Floating Finnish words — watermark style */}
+          <div className="absolute top-3 left-5 text-white/20 font-black text-4xl select-none" style={{ transform: 'rotate(-6deg)', letterSpacing: '-1px' }}>Hei!</div>
+          <div className="absolute top-7 right-10 text-emerald-300/25 font-black text-2xl select-none" style={{ transform: 'rotate(4deg)' }}>Moi!</div>
+          <div className="absolute bottom-3 left-[30%] text-cyan-200/15 font-black text-3xl select-none tracking-wide">Suomi</div>
+          <div className="absolute top-1 left-[52%] text-white/10 font-black text-xl select-none" style={{ transform: 'rotate(2deg)' }}>Kiitos</div>
+          <div className="absolute bottom-4 right-4 text-indigo-300/15 font-black text-5xl select-none tracking-widest">FIN</div>
+          <div className="absolute top-8 left-[22%] text-white/10 text-sm font-bold select-none" style={{ transform: 'rotate(-3deg)' }}>Päivää!</div>
+          <div className="absolute bottom-6 left-6 text-teal-200/10 font-black text-lg select-none">Terve</div>
+
+          {/* Stars */}
+          <div className="absolute top-2 right-[28%] w-1 h-1 rounded-full bg-white/80" />
+          <div className="absolute top-5 right-[18%] w-0.5 h-0.5 rounded-full bg-white/60" />
+          <div className="absolute top-1 left-[60%] w-1 h-1 rounded-full bg-cyan-100/70" />
+          <div className="absolute top-9 left-[72%] w-0.5 h-0.5 rounded-full bg-white/50" />
+          <div className="absolute top-3 left-[42%] w-1 h-1 rounded-full bg-emerald-100/60" />
+          <div className="absolute top-6 right-[42%] w-0.5 h-0.5 rounded-full bg-white/40" />
+          <div className="absolute bottom-9 right-[22%] w-1 h-1 rounded-full bg-white/50" />
         </div>
-        <div className="px-6 pb-6">
-          {/* Avatar — overlaps the banner */}
-          <div className="-mt-10 mb-3">
-            <div className="relative w-fit">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-2xl overflow-hidden">
-                {user?.avatar ? (
-                  <Image src={user.avatar} alt="" fill className="object-cover" />
-                ) : (
-                  user?.firstName?.[0] || 'U'
-                )}
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm hover:bg-blue-700 transition-colors">
-                <Camera className="w-3.5 h-3.5 text-white" />
-              </button>
+        <div className="px-5 pb-3 flex items-end gap-4">
+          {/* Avatar overlapping the banner */}
+          <div className="-mt-8 flex-shrink-0 relative w-fit">
+            <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-xl overflow-hidden">
+              {user?.avatar ? (
+                <Image src={user.avatar} alt="" fill className="object-cover" />
+              ) : (
+                user?.firstName?.[0] || 'U'
+              )}
             </div>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarLoading}
+              className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
+            >
+              {avatarLoading
+                ? <div className="w-2.5 h-2.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <Camera className="w-3 h-3 text-white" />}
+            </button>
           </div>
-          {/* Name — always below the banner */}
-          <div className="mb-4">
-            <h2 className="text-slate-800 font-black text-xl">{user?.firstName} {user?.lastName}</h2>
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
+
+          {/* Name + meta */}
+          <div className="flex-1 pb-1 min-w-0">
+            <h2 className="text-slate-800 font-black text-lg leading-tight truncate">{user?.firstName} {user?.lastName}</h2>
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs mt-0.5 flex-wrap">
               <span>@{user?.username || 'learner'}</span>
               <span>·</span>
               <span className="text-blue-600 font-semibold">{user?.finnishLevel || 'A1'} Level</span>
@@ -129,17 +235,22 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Compact stats row */}
+          <div className="flex items-center gap-4 pb-1 flex-shrink-0">
             {[
-              { icon: Flame, label: 'Day Streak', value: user?.currentStreak || 0, color: 'text-orange-500', bg: 'bg-orange-50' },
-              { icon: Zap, label: 'Total XP', value: (user?.totalXP || 0).toLocaleString(), color: 'text-amber-500', bg: 'bg-amber-50' },
-              { icon: Trophy, label: 'Rank', value: '#3', color: 'text-blue-500', bg: 'bg-blue-50' },
-            ].map(({ icon: Icon, label, value, color, bg }) => (
-              <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
-                <Icon className={`w-5 h-5 ${color} mx-auto mb-1`} />
-                <div className="text-slate-800 font-black text-lg">{value}</div>
-                <div className="text-slate-400 text-xs">{label}</div>
+              { icon: Flame, label: 'Streak', value: user?.currentStreak || 0, color: 'text-orange-500' },
+              { icon: Zap, label: 'XP', value: (user?.totalXP || 0).toLocaleString(), color: 'text-amber-500' },
+              { icon: Trophy, label: 'Rank', value: rank ? `#${rank}` : '—', color: 'text-blue-500' },
+            ].map(({ icon: Icon, label, value, color }, i) => (
+              <div key={label} className="flex items-center gap-3">
+                {i > 0 && <div className="w-px h-6 bg-slate-100" />}
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Icon className={`w-3.5 h-3.5 ${color}`} />
+                    <span className="font-black text-slate-800 text-sm">{value}</span>
+                  </div>
+                  <div className="text-slate-400 text-xs">{label}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -158,11 +269,61 @@ export default function ProfilePage() {
 
       <AnimatePresence mode="wait">
 
-        {/* PROFILE TAB */}
-        {activeTab === 'Profile' && (
-          <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-            <h3 className="font-black text-slate-800">Edit Profile</h3>
+        {/* PROFILE TAB — view mode */}
+        {activeTab === 'Profile' && !editMode && (
+          <motion.div key="profile-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-slate-800 text-sm">Profile Info</h3>
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                <Pencil className="w-3 h-3" /> Edit Profile
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+              {[
+                { label: 'First Name', value: user?.firstName || '—' },
+                { label: 'Last Name', value: user?.lastName || '—' },
+                { label: 'Username', value: `@${user?.username || 'learner'}` },
+                { label: 'Email', value: user?.email || '—' },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <div className="text-xs font-semibold text-slate-400 mb-0.5">{label}</div>
+                  <div className="text-slate-800 font-medium text-sm truncate">{value}</div>
+                </div>
+              ))}
+              <div className="col-span-2">
+                <div className="text-xs font-semibold text-slate-400 mb-0.5">Bio</div>
+                <div className="text-slate-600 text-sm">{user?.bio || <span className="text-slate-300 italic">No bio yet.</span>}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6 mt-3 pt-3 border-t border-slate-50">
+              <div>
+                <div className="text-xs font-semibold text-slate-400 mb-1">Finnish Level</div>
+                <span className="px-2.5 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold">{user?.finnishLevel || 'A1'}</span>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-400 mb-1">Native Language</div>
+                <span className="text-slate-800 font-medium text-sm">{nativeLang?.flag} {nativeLang?.label}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* PROFILE TAB — edit mode */}
+        {activeTab === 'Profile' && editMode && (
+          <motion.div key="profile-edit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-slate-800 text-sm">Edit Profile</h3>
+              <button onClick={cancelEdit} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -177,7 +338,7 @@ export default function ProfilePage() {
                       value={(form as any)[key]}
                       onChange={(e) => updateForm({ [key]: e.target.value })}
                       placeholder={placeholder}
-                      className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                      className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                     />
                   </div>
                 </div>
@@ -192,7 +353,7 @@ export default function ProfilePage() {
                   value={form.username}
                   onChange={(e) => updateForm({ username: e.target.value.toLowerCase().replace(/\s/g, '') })}
                   placeholder="your_username"
-                  className="w-full border border-slate-200 rounded-xl pl-7 pr-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                  className="w-full border border-slate-200 rounded-xl pl-7 pr-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                 />
               </div>
             </div>
@@ -202,7 +363,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input value={user?.email || ''} disabled
-                  className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-400 bg-slate-50 cursor-not-allowed" />
+                  className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-400 bg-slate-50 cursor-not-allowed" />
               </div>
             </div>
 
@@ -217,8 +378,8 @@ export default function ProfilePage() {
                 value={form.bio}
                 onChange={(e) => updateForm({ bio: e.target.value.slice(0, BIO_MAX) })}
                 placeholder="Tell us a bit about yourself..."
-                rows={3}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none transition-all"
+                rows={2}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none transition-all"
               />
             </div>
 
@@ -236,7 +397,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-2">Native Language</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
                 {LANGUAGES.map((lang) => (
                   <button key={lang.code} onClick={() => updateForm({ nativeLanguage: lang.code })}
                     className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-medium transition-all ${form.nativeLanguage === lang.code ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
@@ -246,14 +407,20 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              onClick={saveProfile}
-              disabled={loading}
-              className="btn-primary w-full py-3 flex items-center justify-center gap-2"
-            >
-              {loading ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> Save Changes</>}
-            </motion.button>
+            <div className="flex gap-3 pt-1">
+              <button onClick={cancelEdit}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">
+                Cancel
+              </button>
+              <motion.button
+                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                onClick={saveProfile}
+                disabled={loading}
+                className="flex-2 btn-primary px-8 py-2.5 flex items-center justify-center gap-2 text-sm"
+              >
+                {loading ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> Save Changes</>}
+              </motion.button>
+            </div>
           </motion.div>
         )}
 
@@ -264,8 +431,8 @@ export default function ProfilePage() {
               {[
                 { label: 'Total XP', value: (user?.totalXP || 0).toLocaleString(), icon: Zap, color: 'from-amber-400 to-orange-500' },
                 { label: 'Day Streak', value: user?.currentStreak || 0, icon: Flame, color: 'from-orange-400 to-red-500' },
-                { label: 'Words Learned', value: '124', icon: BookOpen, color: 'from-emerald-400 to-teal-500' },
-                { label: 'Lessons Done', value: '23', icon: CheckCircle2, color: 'from-blue-500 to-indigo-600' },
+                { label: 'Words Learned', value: wordsStudied, icon: BookOpen, color: 'from-emerald-400 to-teal-500' },
+                { label: 'Lessons Done', value: lessonsCompleted, icon: CheckCircle2, color: 'from-blue-500 to-indigo-600' },
               ].map(({ label, value, icon: Icon, color }, i) => (
                 <motion.div key={label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.07 }}
                   className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center">

@@ -24,6 +24,7 @@ export class UsersService {
   async updateProfile(userId: string, data: {
     firstName?: string;
     lastName?: string;
+    username?: string;
     avatar?: string;
     nativeLanguage?: string;
     finnishLevel?: string;
@@ -31,16 +32,28 @@ export class UsersService {
     dailyGoalMinutes?: number;
     timezone?: string;
   }) {
+    // Explicitly pick only fields that exist in the schema
+    const allowed: Record<string, unknown> = {};
+    if (data.firstName    !== undefined) allowed.firstName    = data.firstName;
+    if (data.lastName     !== undefined) allowed.lastName     = data.lastName;
+    if (data.username     !== undefined) allowed.username     = data.username;
+    if (data.avatar       !== undefined) allowed.avatar       = data.avatar;
+    if (data.nativeLanguage !== undefined) allowed.nativeLanguage = data.nativeLanguage;
+    if (data.finnishLevel !== undefined) allowed.finnishLevel = data.finnishLevel;
+    if (data.targetLevel  !== undefined) allowed.targetLevel  = data.targetLevel;
+    if (data.dailyGoalMinutes !== undefined) allowed.dailyGoalMinutes = data.dailyGoalMinutes;
+    if (data.timezone     !== undefined) allowed.timezone     = data.timezone;
+
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: data as any,
+      data: allowed as any,
     });
     const { passwordHash: _, ...safe } = user;
     return safe;
   }
 
   async getDashboardStats(userId: string) {
-    const [user, weeklyAttempts, recentLessons, vocabStats] = await Promise.all([
+    const [user, weeklyAttempts, recentLessons, vocabStats, lessonsCompleted] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -66,6 +79,9 @@ export class UsersService {
         where: { userId },
         _count: { id: true },
       }),
+      this.prisma.attempt.count({
+        where: { userId, lessonId: { not: null }, isCorrect: true },
+      }),
     ]);
 
     const todayXP = await this.prisma.attempt.aggregate({
@@ -89,6 +105,7 @@ export class UsersService {
       weeklyXP: dailyXP,
       recentLessons,
       wordsStudied: vocabStats._count.id,
+      lessonsCompleted,
     };
   }
 

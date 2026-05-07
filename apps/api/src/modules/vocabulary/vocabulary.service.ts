@@ -19,9 +19,15 @@ export class VocabularyService {
     return { words, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async getDueFlashcards(userId: string, limit = 20) {
+  async getDueFlashcards(userId: string, limit = 20, category?: string) {
+    const wordFilter = category && category !== 'all' ? { category } : undefined;
+
     const due = await this.prisma.vocabProgress.findMany({
-      where: { userId, nextReview: { lte: new Date() } },
+      where: {
+        userId,
+        nextReview: { lte: new Date() },
+        ...(wordFilter ? { word: wordFilter } : {}),
+      },
       include: { word: true },
       orderBy: { nextReview: 'asc' },
       take: limit,
@@ -30,7 +36,11 @@ export class VocabularyService {
     if (due.length < limit) {
       const learnedIds = due.map((d) => d.wordId);
       const unstarted = await this.prisma.vocabWord.findMany({
-        where: { id: { notIn: learnedIds }, progress: { none: { userId } } },
+        where: {
+          id: { notIn: learnedIds },
+          progress: { none: { userId } },
+          ...(wordFilter || {}),
+        },
         take: limit - due.length,
       });
       return { flashcards: due, newWords: unstarted };
