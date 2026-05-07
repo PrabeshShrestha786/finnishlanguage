@@ -460,45 +460,262 @@ Respond ONLY with valid JSON:
     ],
   };
 
+  private async buildStoryPlan(topic: string, level: string): Promise<{
+    angle: string;
+    topicType: string;
+    template: string;
+    scene: { setting: string; season: string; characters: string[]; sensory: string[]; emotionalTone: string };
+    outline: string[];
+    keyFacts: string[];
+    vocabFocus: string;
+  }> {
+    const levelHints: Record<string, string> = {
+      A1: 'Pick a concrete everyday scenario a beginner can visualise. A child, a family, or a tourist doing ONE simple thing. Focus on physical actions and direct observations — zero abstract concepts.',
+      A2: 'Simple personal narrative. One person experiences something related to the topic with clear cause-and-effect. Beginning, middle, and end.',
+      B1: 'Magazine-style article with a clear angle: historical context, a comparison, or a personal story that leads to a broader cultural insight.',
+      B2: 'In-depth analytical feature. A nuanced angle: societal impact, controversy, historical significance, or cultural paradox. Include differing viewpoints.',
+    };
+
+    const topicTemplates = `
+Topic type → narrative template:
+  place      → arrival → exploration → highlight → departure/reflection
+  activity   → preparation → experience → reaction → what-was-learned
+  food       → origin/context → preparation → eating/sharing → cultural meaning
+  tradition  → history/origin → how it is celebrated → family/community role → modern relevance
+  person     → early life → achievement → impact → legacy
+  nature     → setting the scene → characteristics → human relationship → conservation/importance
+  daily_life → morning routine → key events → challenges → evening/resolution
+  travel     → journey start → arrival/discovery → interaction → departure feeling`;
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a Finnish language curriculum designer. Plan an engaging, well-structured Finnish learning text. Do NOT write the text — only plan it.
+
+Level ${level} guidance: ${levelHints[level] || levelHints['B1']}
+
+${topicTemplates}
+
+Rules for an EXCELLENT plan:
+- Classify the topic type first, then choose the matching narrative template.
+- Choose ONE specific angle. Bad: "saunas in general". Good: "a family's Saturday sauna ritual at their summer cottage".
+- Scene must be vivid and specific: real setting, named season, concrete characters, sensory details.
+- Outline must follow narrative PROGRESSION matching the template. No random fact listing.
+- Key facts must be CONCRETE and CULTURALLY INTERESTING — things a learner would actually remember.
+- The scene and angle must FORCE varied sentence subjects (people do things, not just "X is Y").
+
+Respond ONLY with valid JSON:
+{
+  "topicType": "one of: place | activity | food | tradition | person | nature | daily_life | travel",
+  "template": "the narrative template steps for this topic type, e.g. preparation → experience → reaction → reflection",
+  "angle": "specific narrative angle or scenario (one sentence)",
+  "scene": {
+    "setting": "exact physical location",
+    "season": "season or time of day",
+    "characters": ["character 1", "character 2"],
+    "sensory": ["sensory detail 1", "sensory detail 2", "sensory detail 3"],
+    "emotionalTone": "the mood/feeling of the text"
+  },
+  "outline": [
+    "Paragraph 1: what happens and why it matters narratively",
+    "Paragraph 2: how the story develops",
+    "Paragraph 3: the key moment or cultural insight",
+    "Paragraph 4: resolution and what the reader takes away"
+  ],
+  "keyFacts": ["concrete fact 1", "concrete fact 2", "concrete fact 3", "concrete fact 4", "concrete fact 5"],
+  "vocabFocus": "domain of vocabulary to use naturally"
+}`,
+      }, {
+        role: 'user',
+        content: `Topic: "${topic}"\nLevel: ${level}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+
+    try {
+      return JSON.parse(completion.choices[0].message.content || '{}');
+    } catch {
+      return {
+        angle: topic, topicType: 'activity', template: 'preparation → experience → reaction → reflection',
+        scene: { setting: '', season: '', characters: [], sensory: [], emotionalTone: '' },
+        outline: [], keyFacts: [], vocabFocus: '',
+      };
+    }
+  }
+
+  private async evaluateStory(text: string, level: string): Promise<{
+    overallScore: number; passesLevel: boolean; repetitionScore: number;
+    flowScore: number; problems: string[];
+  }> {
+    const levelExpectations: Record<string, string> = {
+      A1: `Exactly 3 paragraphs, 4 sentences each. Max 8 words per sentence. Present tense action verbs only.
+No passive, no conditional, no perfect tense, no subordinate clauses.
+Each adjective must appear AT MOST ONCE in the entire text.
+No two consecutive sentences start with the same word.
+Characters (people) must appear in every paragraph doing actions — not just "X on Y" fact sentences.`,
+      A2: 'Max 15 words per sentence. Present tense main, simple past allowed. No conditional, no perfect tense, max one subordinate clause per sentence.',
+      B1: 'Mixed sentence lengths 12-18 words. All tenses allowed. Passive occasional. Subordinate clauses welcome.',
+      B2: 'Rich varied sentences 15-25 words. Full grammar. Complex structures, argumentation, nuanced vocabulary.',
+    };
+
+    const a1ExtraChecks = level === 'A1' ? `
+EXTRA CHECKS FOR A1:
+- Count how many times each adjective appears. Any adjective used 2+ times is a CRITICAL problem.
+- List any adjective that repeats (e.g. "hyvää appears 3 times" is a critical error).
+- Count paragraphs. If not exactly 3, that is a critical problem.
+- Check if topic noun (e.g. "kahvi", "sauna") is the subject of more than 2 sentences — if yes, flag it.
+- Check if any two consecutive sentences start with the same word.` : '';
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a STRICT Finnish language education quality checker. Evaluate this Finnish text for a CEFR ${level} learner.
+
+CEFR ${level} requirements:
+${levelExpectations[level] || levelExpectations['B1']}
+${a1ExtraChecks}
+
+Check for these problems:
+1. Grammar level violations (wrong tense, passive, conditional for the level)
+2. Any adjective repeated more than once in the full text
+3. Topic noun used as subject in 3+ sentences (e.g. "Kahvi on... Kahvi on... Kahvi on...")
+4. Two or more consecutive sentences starting with the same word
+5. Disconnected fact-listing instead of narrative flow
+6. Sentences too long for the level
+7. Wrong paragraph count (A1 must have exactly 3)
+
+Scoring:
+- repetitionScore: adjective variety + sentence opening variety (1-10)
+- flowScore: logical sentence-to-sentence connection (1-10)
+- overallScore: weighted quality score — weight repetition heavily for A1
+
+Be STRICT. For A1: any repeated adjective = overallScore max 5. Any 3+ consecutive "X on Y" sentences = overallScore max 4.
+Score of 7+ = acceptable. Below 7 = rewrite needed.
+
+Respond ONLY with valid JSON:
+{
+  "overallScore": 7,
+  "passesLevel": true,
+  "repetitionScore": 6,
+  "flowScore": 8,
+  "problems": ["Specific problem 1", "Specific problem 2"]
+}`,
+      }, {
+        role: 'user',
+        content: `Evaluate this CEFR ${level} Finnish text:\n\n${text}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+    });
+
+    try {
+      return JSON.parse(completion.choices[0].message.content || '{}');
+    } catch {
+      return { overallScore: 8, passesLevel: true, repetitionScore: 7, flowScore: 7, problems: [] };
+    }
+  }
+
+  private async repairStory(text: string, problems: string[], level: string, levelRules: string): Promise<string> {
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a Finnish language editor. Rewrite the given Finnish text to fix ONLY the listed problems.
+Keep the same story, same facts, same structure — only fix what is broken.
+
+${levelRules}
+
+Fix these specific problems:
+${problems.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Rules for rewriting:
+- Do not change the story angle or content
+- Do not add new facts
+- Fix sentence openings so no two consecutive sentences start with the same word
+- Ensure each sentence connects logically to the previous one
+- Maintain the CEFR ${level} grammar constraints above
+
+Return ONLY the rewritten Finnish text, no JSON, no explanation.`,
+      }, {
+        role: 'user',
+        content: text,
+      }],
+      temperature: 0.3,
+      max_tokens: 2000,
+    });
+
+    return completion.choices[0].message.content?.trim() || text;
+  }
+
   async generateReadingStory(level: string, topic?: string) {
     const pool = this.TOPICS_BY_LEVEL[level] || this.READING_TOPICS;
     const chosenTopic = topic || pool[Math.floor(Math.random() * pool.length)];
 
+    const plan = await this.buildStoryPlan(chosenTopic, level);
+
     const levelConfig: Record<string, { temperature: number; rules: string }> = {
       A1: {
-        temperature: 0.25,
+        temperature: 0.3,
         rules: `══════════════════════════════════════════════
-CEFR A1 — ABSOLUTE BEGINNER. THIS IS THE MOST IMPORTANT INSTRUCTION.
+CEFR A1 — ABSOLUTE BEGINNER. FOLLOW EVERY RULE BELOW.
 ══════════════════════════════════════════════
 
-The reader has studied Finnish for only 1–2 months. Every sentence MUST pass ALL of these rules:
+The reader has studied Finnish for only 1–2 months.
 
-SENTENCE LENGTH: MAXIMUM 9 WORDS PER SENTENCE.
-→ Count every word. If a sentence has 10 or more words, split it into two sentences immediately.
+PARAGRAPH COUNT: Write EXACTLY 3 paragraphs separated by \\n\\n. Not 4. Not 5. Exactly 3.
+PARAGRAPH LENGTH: Each paragraph = exactly 4 sentences. No more, no less.
+SENTENCE LENGTH: MAXIMUM 8 WORDS PER SENTENCE. Count every word. Split if needed.
 
-ALLOWED VERBS (present tense only):
-on, ovat, ei ole, asuu, asuvat, tekee, tekevät, menee, menevät, tulee, tulevat,
-myy, maksaa, syö, juo, pitää, rakastaa, haluaa, voi, tarvitsee, alkaa, loppuu, on
+ALLOWED ACTION VERBS (present tense only — these make stories, use them):
+menee, tulee, tekee, ottaa, laittaa, avaa, sulkee, katsoo, kuuntelee, sanoo,
+nauraa, juoksee, istuu, seisoo, syö, juo, pitää, haluaa, herää, lähtee,
+vie, saa, antaa, kysyy, vastaa, löytää, nukkuu, leikkii, työskentelee, kävelee
 
-ABSOLUTELY FORBIDDEN — do not use these EVER:
-✗ Passive voice: ANY word ending in -taan, -daan, -llaan, -ssaan, -ään, -aan
-  Bad examples: myydään, tehdään, käytetään, järjestetään, kutsutaan — ALL FORBIDDEN
-✗ Conditional: ANY word ending in -isi
-  Bad examples: olisi, voisi, pitäisi, tulisi, saisi — ALL FORBIDDEN
-✗ Perfect tense: "on + past participle"
-  Bad examples: on tullut, on mennyt, on ollut, on saanut — ALL FORBIDDEN
-✗ Subordinate clauses: NEVER use joka, jotta, kun, koska, vaikka, että, jos
-✗ Long compound words (over 10 letters)
-✗ Any word not in the 500 most common Finnish words
+STATE VERBS (use sparingly — max 2 "on/ovat" sentences per paragraph):
+on, ovat, ei ole, asuu
 
-ALLOWED connectors (and ONLY these): ja, mutta, myös, tai, siksi, ensin, sitten, nyt
+ABSOLUTELY FORBIDDEN:
+✗ Passive voice (-taan, -daan, -llaan, -ssaan, -ään endings)
+✗ Conditional (-isi endings: olisi, voisi, pitäisi)
+✗ Perfect tense (on tullut, on mennyt, on ollut)
+✗ Subordinate clauses (joka, jotta, kun, koska, vaikka, että, jos)
+✗ Compound words over 10 letters
 
-EXAMPLE OF PERFECT A1 TEXT — copy this sentence style exactly:
-"Helsinki on Suomen pääkaupunki. Se on meren rannalla Etelä-Suomessa. Helsingissä asuu yli 600 000 ihmistä. Kaupungissa on paljon puistoja ja kahviloita. Turistit rakastavat Helsinkiä. Helsinki on moderni ja kaunis kaupunki."
+ALLOWED connectors: ja, mutta, myös, tai, sitten, ensin, nyt
 
-Notice: every sentence is short, clear, present tense, no passive, no subordinate clauses.
+ADJECTIVE REPETITION RULE (critical):
+→ Each adjective may appear AT MOST ONCE in the entire text.
+→ Do not use "hyvä/hyvää", "tärkeä/tärkeää", "lämmin/lämmintä" more than once total.
+→ After finishing, scan every adjective. If repeated — delete or replace it.
 
-SELF-CHECK: After writing each sentence, count its words. If count ≥ 10, split it.`,
+CHARACTER RULE:
+→ The main character(s) from the scene must appear in EVERY paragraph.
+→ Begin most sentences with the character's name or pronoun (hän, he), not with the topic noun.
+→ BAD: "Kahvi on hyvää. Kahvi on lämmin. Kahvi on tärkeää." (topic as subject every time)
+→ GOOD: "Anna juo kahvia. Hän pitää siitä. Se maistuu hyvältä." (character acts, then reaction)
+
+SENTENCE VARIETY RULE:
+→ No two consecutive sentences may start with the same word.
+→ Mix openings: character name, pronoun (hän/he/se), time word (sitten/ensin/nyt), verb first.
+
+EXAMPLE OF PERFECT A1 NARRATIVE (3 paragraphs, 4 sentences each, character-driven):
+"Anna herää aamulla aikaisin. Hän menee keittiöön. Anna laittaa kahvia. Se tuoksuu hyvältä.
+
+Anna ottaa kupin pöydältä. Hän juo kahvia hitaasti. Mikko tulee keittiöön. He istuvat yhdessä.
+
+Sitten he lähtevät töihin. Anna kävelee bussipysäkille. Mikko ajaa autolla. He näkevät taas iltapäivällä."
+
+Notice: character does things in every sentence, 3 different adjectives total, no sentence starts the same way twice in a row.
+
+SELF-CHECK before finishing:
+1. Count paragraphs → must be exactly 3
+2. Count sentences per paragraph → must be exactly 4
+3. Count words per sentence → must be ≤ 8
+4. List all adjectives used → each must appear only once
+5. Check consecutive sentence openings → no two in a row start the same`,
       },
       A2: {
         temperature: 0.40,
@@ -547,6 +764,49 @@ Example: "Tekoälyn nopea kehitys on herättänyt laajaa yhteiskunnallista kesku
 
     const config = levelConfig[level] || levelConfig['B1'];
 
+    const characters = (plan.scene?.characters || []).join(', ') || 'a Finnish person';
+    const sceneBlock = `
+SCENE — YOU MUST USE THIS IN THE TEXT:
+  Setting:         ${plan.scene?.setting || 'everyday Finnish location'}
+  Season/Time:     ${plan.scene?.season || 'morning'}
+  Characters:      ${characters}
+  Sensory details: ${(plan.scene?.sensory || []).join(' | ') || 'sights and sounds of the setting'}
+  Emotional tone:  ${plan.scene?.emotionalTone || 'warm and natural'}
+
+CHARACTER MANDATE: The character(s) listed above MUST appear in every paragraph doing actions.
+The first sentence of the text MUST introduce a character by name doing an action.
+Do NOT let the topic noun (e.g. "kahvi", "sauna") be the subject of more than 2 sentences total.`;
+
+    const planContext = plan.angle ? `
+══════════════════════════════════════════════
+STORY PLAN — FOLLOW THIS STRUCTURE PRECISELY
+══════════════════════════════════════════════
+Topic type: ${plan.topicType || 'activity'}
+Narrative template: ${plan.template || 'preparation → experience → reaction → reflection'}
+Angle: ${plan.angle}
+${sceneBlock}
+
+Paragraph outline:
+${plan.outline.map((p, i) => `  Para ${i + 1}: ${p}`).join('\n')}
+
+Key facts to weave in naturally:
+${plan.keyFacts.map((f) => `  • ${f}`).join('\n')}
+
+Vocabulary focus: ${plan.vocabFocus}
+
+SEMANTIC PROGRESSION RULE (most important writing rule):
+→ Each sentence MUST connect logically to the previous sentence.
+→ Prefer actions and their consequences over disconnected facts.
+→ Good: "Isä lämmittää kiuasta. Lapset odottavat ulkona. Kiuas lämpenee hitaasti."
+→ Bad:  "Sauna on kuuma. Sauna on terveellinen. Sauna on suomalainen."
+
+ANTI-REPETITION RULES:
+✗ No two consecutive sentences may begin with the same word or subject.
+✗ Do NOT list properties of the topic (X is Y, X is Z, X is W).
+✓ Vary sentence openings: verbs, time words, character names, locations, sensory words.
+✓ Each paragraph MUST match its planned theme — no drifting.
+══════════════════════════════════════════════` : '';
+
     const completion = await this.groq.chat.completions.create({
       model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
       messages: [
@@ -555,10 +815,11 @@ Example: "Tekoälyn nopea kehitys on herättänyt laajaa yhteiskunnallista kesku
           content: `You are a Finnish language teacher writing graded reading texts for learners.
 
 ${config.rules}
+${planContext}
 
 TOPIC: "${chosenTopic}"
-Write factual, informative content about this exact topic. Do NOT switch to a generic topic.
-Adapt the COMPLEXITY OF IDEAS to the level: A1/A2 → only the simplest concrete facts; B1/B2 → include analysis and nuance.
+Write engaging content using the scene and narrative plan above. Do NOT switch to a generic topic.
+Adapt COMPLEXITY OF IDEAS to the level: A1/A2 → simple concrete facts only; B1/B2 → include analysis and nuance.
 
 STRUCTURE (mandatory):
 - Exactly 3 or 4 paragraphs, separated by \\n\\n
@@ -589,10 +850,24 @@ Respond ONLY with valid JSON:
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: config.temperature,
+      temperature: 0.5,
       max_tokens: 3200,
     });
-    return JSON.parse(completion.choices[0].message.content || '{}');
+
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+    // Call 3: Evaluate
+    if (result.text) {
+      const evaluation = await this.evaluateStory(result.text, level);
+
+      // Call 4: Repair only if quality is below threshold
+      if (evaluation.overallScore < 7 && evaluation.problems?.length > 0) {
+        const repairedText = await this.repairStory(result.text, evaluation.problems, level, config.rules);
+        result.text = repairedText;
+      }
+    }
+
+    return result;
   }
 
   async generateExercises(topic: string, level: string, type: string, count = 5) {
@@ -610,6 +885,187 @@ Respond ONLY with valid JSON: { "exercises": [{"question":"","options":[],"corre
     });
     const result = JSON.parse(completion.choices[0].message.content || '{"exercises":[]}');
     return result.exercises || [];
+  }
+
+  private async buildSpeakingScenario(topic: string | undefined, level: string, count: number): Promise<{
+    scenario: string;
+    subSituations: string[];
+    communicativeGoal: string;
+    phraseTypes: string[];
+  }> {
+    const levelContext: Record<string, string> = {
+      A1: 'Basic survival communication. Phrases are 2–4 words. Focus on greetings, simple requests, and reactions.',
+      A2: 'Simple everyday interaction. Phrases are 4–6 words. Focus on asking for things, expressing simple opinions, and short exchanges.',
+      B1: 'Practical conversation. Phrases are 6–9 words. Focus on discussing plans, expressing feelings, giving opinions, and asking for clarification.',
+      B2: 'Fluent natural expression. Phrases are 8–12 words. Focus on nuanced opinions, hypothetical situations, and complex requests.',
+    };
+
+    const topicLine = topic
+      ? `The phrases will be set in the context of: "${topic}".`
+      : 'Choose a natural everyday Finnish context that is culturally relevant and practical.';
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a Finnish language speaking practice designer. Plan a conversational scenario for ${count} practice phrases at CEFR ${level}.
+
+${topicLine}
+Level context: ${levelContext[level] || levelContext['A2']}
+
+Rules:
+- The scenario must be ONE specific real-life situation, not a vague theme.
+  Bad: "things about sauna"  Good: "arriving at a friend's cottage and preparing for sauna together"
+- Sub-situations must represent DIFFERENT moments within the scenario so phrases don't all sound the same.
+- Phrase types must be varied: mix questions, suggestions, exclamations, requests, reactions, descriptions.
+- Communicative goal is what the learner practices functionally (e.g. "making suggestions and expressing enthusiasm").
+
+Respond ONLY with valid JSON:
+{
+  "scenario": "one specific real-life situation (one sentence)",
+  "subSituations": ["moment 1 in the scenario", "moment 2", "moment 3", "moment 4", "moment 5", "moment 6"],
+  "communicativeGoal": "what communication skill this practices",
+  "phraseTypes": ["question", "suggestion", "exclamation", "request", "reaction", "description"]
+}`,
+      }, {
+        role: 'user',
+        content: `Topic: "${topic || 'everyday Finnish life'}"\nLevel: ${level}\nPhrase count: ${count}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+
+    try {
+      return JSON.parse(completion.choices[0].message.content || '{}');
+    } catch {
+      return {
+        scenario: topic || 'everyday conversation',
+        subSituations: [],
+        communicativeGoal: 'general communication',
+        phraseTypes: ['question', 'statement', 'exclamation', 'request', 'suggestion', 'reaction'],
+      };
+    }
+  }
+
+  private async evaluatePhrases(phrases: any[], level: string): Promise<{
+    overallScore: number; problems: string[];
+  }> {
+    const levelLengths: Record<string, string> = {
+      A1: '2–4 words', A2: '4–6 words', B1: '6–9 words', B2: '8–12 words',
+    };
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a Finnish language quality checker for speaking practice phrases at CEFR ${level}.
+Expected phrase length: ${levelLengths[level] || '4–8 words'}.
+
+Check for these problems:
+1. Descriptive facts instead of speakable utterances ("Sauna on kuuma" is a fact, not something you say TO someone)
+2. Two or more phrases with identical sentence structure (e.g. all starting with "Haluatko...")
+3. Phrases too long or too short for the level
+4. Unnatural Finnish that a native speaker would not say
+5. Phrases that don't relate to a coherent scenario (random disconnected topics)
+
+Score 1–10 (10 = perfect). Below 7 means regeneration is needed.
+
+Respond ONLY with valid JSON:
+{ "overallScore": 8, "problems": ["specific problem 1", "specific problem 2"] }`,
+      }, {
+        role: 'user',
+        content: `Evaluate these CEFR ${level} Finnish speaking phrases:\n${JSON.stringify(phrases, null, 2)}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+    });
+
+    try {
+      return JSON.parse(completion.choices[0].message.content || '{}');
+    } catch {
+      return { overallScore: 8, problems: [] };
+    }
+  }
+
+  async generateSpeakingPhrases(level: string, count = 6, topic?: string) {
+    const levelGuide: Record<string, string> = {
+      A1: 'very simple, 2-4 words each — greetings, reactions, one-word-plus-verb',
+      A2: 'simple everyday utterances, 4-6 words each',
+      B1: 'practical conversational phrases, 6-9 words each',
+      B2: 'natural complex expressions, 8-12 words each',
+    };
+    const guide = levelGuide[level] || levelGuide['A2'];
+
+    // Call 1: Scenario Planner
+    const scenario = await this.buildSpeakingScenario(topic, level, count);
+
+    const scenarioBlock = `
+SCENARIO: ${scenario.scenario}
+Communicative goal: ${scenario.communicativeGoal}
+
+Generate exactly one phrase per sub-situation below:
+${scenario.subSituations.map((s, i) => `  Phrase ${i + 1}: ${s}`).join('\n')}
+
+Phrase type variety required: ${scenario.phraseTypes.join(', ')}`;
+
+    // Call 2: Generator
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `Generate ${count} Finnish speaking practice phrases at CEFR ${level} (${guide}).
+${scenarioBlock}
+
+Strict rules:
+- Every phrase must be something a PERSON SAYS — a real utterance, not a fact statement.
+  Bad: "Sauna on kuuma." (description)  Good: "Onko kiuas jo kuuma?" (utterance in context)
+- Match the phrase type for each sub-situation (question, suggestion, exclamation, etc.)
+- No two phrases may have the same sentence structure or opening word.
+- Pronunciation tip: show EVERY syllable separated by hyphens.
+
+Respond ONLY with valid JSON:
+{"phrases":[{"fi":"Finnish phrase","en":"English translation","tip":"syl-la-ble guide"}]}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content || '{"phrases":[]}');
+    let phrases: any[] = (result.phrases || []).map((p: any) => ({ ...p, level }));
+
+    // Call 3: Evaluator — regenerate once if quality is poor
+    if (phrases.length > 0) {
+      const evaluation = await this.evaluatePhrases(phrases, level);
+      if (evaluation.overallScore < 7 && evaluation.problems?.length > 0) {
+        const retry = await this.groq.chat.completions.create({
+          model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+          messages: [{
+            role: 'system',
+            content: `Generate ${count} Finnish speaking practice phrases at CEFR ${level} (${guide}).
+${scenarioBlock}
+
+The previous attempt had these quality problems — fix ALL of them:
+${evaluation.problems.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Strict rules:
+- Every phrase must be a real utterance, not a description of a concept.
+- No two phrases may share the same sentence structure.
+- Pronunciation tip: show EVERY syllable separated by hyphens.
+
+Respond ONLY with valid JSON:
+{"phrases":[{"fi":"Finnish phrase","en":"English translation","tip":"syl-la-ble guide"}]}`,
+          }],
+          response_format: { type: 'json_object' },
+          temperature: 0.75,
+        });
+        const retryResult = JSON.parse(retry.choices[0].message.content || '{"phrases":[]}');
+        if ((retryResult.phrases || []).length > 0) {
+          phrases = retryResult.phrases.map((p: any) => ({ ...p, level }));
+        }
+      }
+    }
+
+    return phrases;
   }
 
   async getChatHistory(userId: string, limit = 50) {
@@ -691,13 +1147,117 @@ Respond ONLY with valid JSON:
   "hints": ["Finnish hint for a word or phrase that is tricky to translate", "another hint if genuinely needed"]
 }`;
 
+    // Call 1: Mini arc planner — who, what happens, in what order
+    const plannerCompletion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [{
+        role: 'system',
+        content: `You are a language exercise designer. Plan a short coherent passage for a translation exercise.
+Topic: "${topic}"
+Level: CEFR ${level}
+Direction: ${isFiEn ? 'Finnish → English' : 'English → Finnish'}
+
+Rules:
+- Pick ONE specific situation within the topic. Not "morning routine" in general — "Matti oversleeps and rushes to make coffee before work".
+- The arc must have logical progression: each sentence leads naturally to the next.
+- Characters (if any) should use Finnish names: Matti, Liisa, Pekka, Anna, Juha, Mari.
+- Sentence count must match the level: A1=2-3, A2=3-4, B1=5-6, B2=6-7.
+
+Respond ONLY with valid JSON:
+{
+  "who": "character name or 'no character'",
+  "situation": "specific situation (one sentence)",
+  "arc": ["sentence 1 event/action", "sentence 2 event/action", "sentence 3 event/action"],
+  "keyVocab": ["word1", "word2", "word3"]
+}`,
+      }, {
+        role: 'user',
+        content: `Topic: "${topic}"\nLevel: ${level}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+
+    let arc: { who: string; situation: string; arc: string[]; keyVocab: string[] } = {
+      who: '', situation: topic, arc: [], keyVocab: [],
+    };
+    try {
+      arc = JSON.parse(plannerCompletion.choices[0].message.content || '{}');
+    } catch { /* use defaults */ }
+
+    const arcBlock = arc.arc?.length > 0 ? `
+PASSAGE PLAN — follow this arc exactly, in this order:
+${arc.arc.map((step, i) => `  Sentence ${i + 1}: ${step}`).join('\n')}
+Character: ${arc.who || 'no specific character'}
+Key vocabulary to use: ${(arc.keyVocab || []).join(', ')}
+
+SEMANTIC PROGRESSION: Each sentence MUST connect logically to the previous one.
+Do NOT write disconnected isolated sentences about the same topic.` : '';
+
+    const enrichedPrompt = systemPrompt + (arcBlock ? `\n\n${arcBlock}` : '');
+
+    // Call 2: Writer
     const completion = await this.groq.chat.completions.create({
       model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
-      messages: [{ role: 'system', content: systemPrompt }],
+      messages: [{ role: 'system', content: enrichedPrompt }],
       response_format: { type: 'json_object' },
-      temperature: 0.9,
+      temperature: 0.5,
     });
-    return JSON.parse(completion.choices[0].message.content || '{}');
+
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+    // Call 3: Evaluator
+    if (result.source) {
+      const evalCompletion = await this.groq.chat.completions.create({
+        model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+        messages: [{
+          role: 'system',
+          content: `You are a quality checker for CEFR ${level} language exercise passages.
+Check this passage intended for a translation exercise:
+
+Problems to detect:
+1. Sentences do not connect logically to each other (no causal/narrative flow)
+2. Two or more sentences start with the same subject
+3. Passage feels like isolated textbook examples rather than natural writing
+4. Grammar or vocabulary too advanced or too simple for CEFR ${level}
+5. Sentences too short (choppy) or too long for the level
+
+Score 1-10. Below 7 needs rewriting.
+Respond ONLY with valid JSON: { "overallScore": 8, "problems": ["problem 1"] }`,
+        }, {
+          role: 'user',
+          content: `CEFR ${level} passage:\n"${result.source}"`,
+        }],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+      });
+
+      let evalScore = 8;
+      let evalProblems: string[] = [];
+      try {
+        const ev = JSON.parse(evalCompletion.choices[0].message.content || '{}');
+        evalScore = ev.overallScore ?? 8;
+        evalProblems = ev.problems ?? [];
+      } catch { /* use defaults */ }
+
+      // Call 4: Rewriter (conditional)
+      if (evalScore < 7 && evalProblems.length > 0) {
+        const repairPrompt = enrichedPrompt + `\n\nThe previous attempt had these problems — fix ALL of them:\n${evalProblems.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\nRewrite the passage completely, keeping the same topic and arc.`;
+        const repairCompletion = await this.groq.chat.completions.create({
+          model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: repairPrompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.3,
+        });
+        try {
+          const repaired = JSON.parse(repairCompletion.choices[0].message.content || '{}');
+          if (repaired.source) result.source = repaired.source;
+          if (repaired.hints) result.hints = repaired.hints;
+        } catch { /* keep original */ }
+      }
+    }
+
+    return result;
   }
 
   async checkTranslation(source: string, translation: string, level: string, direction: 'en-fi' | 'fi-en' = 'en-fi') {

@@ -2,11 +2,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Play, Volume2, RefreshCw, ChevronRight, Star, Zap, CheckCircle2, Info, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Volume2, RefreshCw, ChevronRight, Star, CheckCircle2, Info, Loader2, Wand2, Zap, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
-const PHRASES = [
+const DEFAULT_PHRASES = [
   { fi: 'Hyvää huomenta', en: 'Good morning', level: 'A1', tip: 'hü-vää huo-men-ta' },
   { fi: 'Minun nimeni on', en: 'My name is', level: 'A1', tip: 'mi-nun ni-me-ni on' },
   { fi: 'Puhutko englantia?', en: 'Do you speak English?', level: 'A2', tip: 'pu-hut-ko eng-lan-ti-a' },
@@ -15,7 +16,10 @@ const PHRASES = [
   { fi: 'Suomi on kaunis maa', en: 'Finland is a beautiful country', level: 'B1', tip: 'suo-mi on kau-nis maa' },
 ];
 
+const LEVEL_XP: Record<string, number> = { A1: 20, A2: 30, B1: 45, B2: 60 };
+
 type RecordState = 'idle' | 'recording' | 'processing' | 'done';
+type Phrase = { fi: string; en: string; level: string; tip: string };
 
 function CircularProgress({ score, color }: { score: number; color: string }) {
   const r = 36;
@@ -31,7 +35,6 @@ function CircularProgress({ score, color }: { score: number; color: string }) {
         initial={{ strokeDashoffset: circ }}
         animate={{ strokeDashoffset: offset }}
         transition={{ duration: 1.5, ease: 'easeOut' }}
-        className="progress-ring-circle"
         style={{ transform: 'rotate(-90deg)', transformOrigin: '44px 44px' }}
       />
       <text x="44" y="49" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{score}</text>
@@ -40,20 +43,33 @@ function CircularProgress({ score, color }: { score: number; color: string }) {
 }
 
 export default function SpeakingPage() {
+  const { user, updateUser } = useAuthStore();
+  const [phrases, setPhrases] = useState<Phrase[]>(DEFAULT_PHRASES);
   const [phraseIdx, setPhraseIdx] = useState(0);
   const [state, setState] = useState<RecordState>('idle');
   const [score, setScore] = useState<any>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loadingTTS, setLoadingTTS] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [showGenPanel, setShowGenPanel] = useState(false);
+  const [genLevel, setGenLevel] = useState<string>(user?.finnishLevel || 'A1');
+  const [genTopic, setGenTopic] = useState('');
+  const [setCompleted, setSetCompleted] = useState(false);
+
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
-  const phrase = PHRASES[phraseIdx];
+
+  const phrase = phrases[phraseIdx];
 
   useEffect(() => {
     return () => { ttsAudioRef.current?.pause(); };
   }, []);
+
+  // Clear TTS cache when phrase set changes
+  useEffect(() => {
+    ttsCacheRef.current.clear();
+  }, [phrases]);
 
   const speakPhrase = useCallback(async () => {
     const cached = ttsCacheRef.current.get(phrase.fi);
@@ -70,7 +86,7 @@ export default function SpeakingPage() {
       const url = URL.createObjectURL(res.data);
       ttsCacheRef.current.set(phrase.fi, url);
       play(url);
-    } catch { /* silent fail */ } finally {
+    } catch { toast.error('Audio unavailable'); } finally {
       setLoadingTTS(false);
     }
   }, [phrase.fi]);
@@ -98,9 +114,6 @@ export default function SpeakingPage() {
 
   const handleStop = async () => {
     const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    setAudioUrl(url);
-
     try {
       const formData = new FormData();
       formData.append('audio', blob, 'audio.webm');
@@ -117,43 +130,169 @@ export default function SpeakingPage() {
         fluencyScore: Math.floor(Math.random() * 30) + 55,
         accuracyScore: Math.floor(Math.random() * 30) + 65,
         feedback: 'Good attempt! Focus on the vowel sounds — Finnish vowels are pure and consistent.',
-        improvements: ['Lengthen the vowel in "huomenta"', 'Finnish "r" is rolled slightly'],
+        improvements: ['Lengthen the vowel sounds', 'Finnish stress is always on the first syllable'],
       };
       setScore(mockScore);
       setState('done');
     }
   };
 
-  const reset = () => { setState('idle'); setScore(null); setAudioUrl(null); };
-  const next = () => { setPhraseIdx((i) => (i + 1) % PHRASES.length); reset(); };
+  const reset = () => { setState('idle'); setScore(null); };
+
+  const next = () => {
+    const isLast = phraseIdx === phrases.length - 1;
+    if (isLast) {
+      setSetCompleted(true);
+      const xp = LEVEL_XP[phrase.level] || 30;
+      updateUser({ totalXP: (user?.totalXP || 0) + xp });
+      api.post('/users/xp', { xpEarned: xp, source: 'speaking' }).catch(() => {});
+    } else {
+      setPhraseIdx((i) => i + 1);
+      reset();
+    }
+  };
+
+  const generateNewSet = async () => {
+    setGenerating(true);
+    setShowGenPanel(false);
+    try {
+      const res = await api.post('/ai/speaking/generate', { level: genLevel, count: 6, topic: genTopic || undefined });
+      const newPhrases: Phrase[] = res.data?.data || res.data || [];
+      if (!newPhrases.length) throw new Error('empty');
+      setPhrases(newPhrases);
+      setPhraseIdx(0);
+      setSetCompleted(false);
+      reset();
+      toast.success(`New ${genLevel} practice set generated!`);
+    } catch {
+      toast.error('Failed to generate phrases. Try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const restartDefault = () => {
+    setPhrases(DEFAULT_PHRASES);
+    setPhraseIdx(0);
+    setSetCompleted(false);
+    reset();
+  };
+
+  if (setCompleted) {
+    const xp = LEVEL_XP[phrase.level] || 30;
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl p-10 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-3xl font-black text-white mb-2">Set Complete!</h2>
+          <p className="text-slate-400 mb-6">You finished all {phrases.length} phrases</p>
+          <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-4 py-2 rounded-full text-aurora-green font-bold mb-8">
+            <Zap className="w-4 h-4" /> +{xp} XP Earned
+          </div>
+          <div className="flex gap-3 justify-center">
+            <button onClick={restartDefault} className="btn-secondary px-6 py-3 text-sm flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" /> Default Phrases
+            </button>
+            <button onClick={generateNewSet} disabled={generating}
+              className="btn-aurora px-6 py-3 text-sm font-bold text-nordic-dark flex items-center gap-2 disabled:opacity-60">
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              Generate New Set
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm">
-            <Mic className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800">Speaking Practice</h1>
-            <p className="text-slate-500 text-sm">AI pronunciation coaching powered by Groq Whisper</p>
-          </div>
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={() => setShowGenPanel((v) => !v)} disabled={generating}
+          className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60">
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {generating ? 'Generating…' : 'Generate with AI'}
+        </motion.button>
+
+        <div className="hidden md:flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-1.5">
+          <Mic className="w-4 h-4 text-emerald-600" />
+          <span className="text-emerald-700 text-sm font-semibold">{phrases.length} Phrases</span>
         </div>
-      </motion.div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-slate-500 text-sm font-medium">Level:</span>
+          {(['A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
+            <button key={lvl} onClick={() => setGenLevel(lvl)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                genLevel === lvl ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'
+              }`}>{lvl}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Generate Panel */}
+      <AnimatePresence>
+        {showGenPanel && (
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            className="bg-white border border-violet-200 rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-violet-500" />
+                <span className="font-bold text-slate-800">Generate a New Practice Set</span>
+                <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">Powered by Groq AI</span>
+              </div>
+              <button onClick={() => setShowGenPanel(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-shrink-0">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Level</label>
+                <div className="flex gap-1.5">
+                  {(['A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
+                    <button key={lvl} onClick={() => setGenLevel(lvl)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        genLevel === lvl ? 'bg-violet-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}>{lvl}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Topic <span className="font-normal text-slate-400">(optional)</span></label>
+                <input type="text" value={genTopic} onChange={(e) => setGenTopic(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && generateNewSet()}
+                  placeholder="e.g. at the café, greetings, shopping, travel…"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all" />
+              </div>
+              <div className="flex items-end">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={generateNewSet}
+                  className="btn-primary px-5 py-2 text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
+                  <Sparkles className="w-4 h-4" /> Generate
+                </motion.button>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-3">Each AI practice set gives XP on completion. Sets are not saved — generate a new one anytime.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Progress */}
       <div className="flex gap-2">
-        {PHRASES.map((_, i) => (
+        {phrases.map((_, i) => (
           <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i < phraseIdx ? 'bg-emerald-400' : i === phraseIdx ? 'bg-finn-500' : 'bg-slate-200'}`} />
         ))}
       </div>
 
       {/* Phrase Card */}
-      <motion.div key={phraseIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      <motion.div key={`${phrases[0].fi}-${phraseIdx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-3xl p-8 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
         <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-3 py-1 rounded-full text-aurora-green text-xs font-bold mb-6">
-          {phrase.level} · Phrase {phraseIdx + 1} of {PHRASES.length}
+          {phrase.level} · Phrase {phraseIdx + 1} of {phrases.length}
         </div>
 
         <p className="text-4xl font-black text-white mb-3">{phrase.fi}</p>
@@ -176,12 +315,8 @@ export default function SpeakingPage() {
         <AnimatePresence mode="wait">
           {state === 'idle' && (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={startRecording}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-glow-green"
-              >
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRecording}
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-glow-green">
                 <Mic className="w-10 h-10 text-white" />
               </motion.button>
               <p className="text-slate-400 text-sm">Tap to start recording</p>
@@ -190,13 +325,9 @@ export default function SpeakingPage() {
 
           {state === 'recording' && (
             <motion.div key="recording" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={stopRecording}
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative"
-              >
+              <motion.button whileTap={{ scale: 0.95 }} onClick={stopRecording}
+                animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative">
                 {[1, 2, 3].map((i) => (
                   <motion.div key={i} className="absolute inset-0 rounded-full border-2 border-red-500"
                     animate={{ scale: [1, 1.5 + i * 0.3], opacity: [0.5, 0] }}
@@ -204,7 +335,7 @@ export default function SpeakingPage() {
                 ))}
                 <MicOff className="w-10 h-10 text-white relative z-10" />
               </motion.button>
-              <p className="text-red-400 font-semibold animate-pulse">Recording... Tap to stop</p>
+              <p className="text-red-400 font-semibold animate-pulse">Recording… Tap to stop</p>
             </motion.div>
           )}
 
@@ -213,7 +344,7 @@ export default function SpeakingPage() {
               <div className="w-24 h-24 rounded-full bg-finn-500/20 border-2 border-finn-500/50 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-finn-500 border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-finn-300 font-semibold">Analyzing pronunciation...</p>
+              <p className="text-finn-300 font-semibold">Analyzing pronunciation…</p>
             </motion.div>
           )}
 
@@ -255,7 +386,7 @@ export default function SpeakingPage() {
                   <RefreshCw className="w-4 h-4" /> Try Again
                 </button>
                 <button onClick={next} className="btn-aurora flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold text-nordic-dark">
-                  Next Phrase <ChevronRight className="w-4 h-4" />
+                  {phraseIdx === phrases.length - 1 ? 'Finish Set' : 'Next Phrase'} <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </motion.div>
