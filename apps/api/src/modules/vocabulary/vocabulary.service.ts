@@ -105,6 +105,15 @@ export class VocabularyService {
     return { words, nativeLanguage: user?.nativeLanguage || 'ENGLISH' };
   }
 
+  async getCategories() {
+    const counts = await this.prisma.vocabWord.groupBy({
+      by: ['category'],
+      _count: { id: true },
+      orderBy: { category: 'asc' },
+    });
+    return counts.map((c) => ({ category: c.category, count: c._count.id }));
+  }
+
   async toggleFavorite(userId: string, wordId: string) {
     const existing = await this.prisma.vocabProgress.findUnique({
       where: { userId_wordId: { userId, wordId } },

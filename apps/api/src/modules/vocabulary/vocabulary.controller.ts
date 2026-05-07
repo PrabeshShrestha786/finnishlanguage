@@ -15,6 +15,11 @@ export class VocabularyController {
     return this.vocabService.getWords(query);
   }
 
+  @Get('categories')
+  getCategories() {
+    return this.vocabService.getCategories();
+  }
+
   @Get('flashcards')
   getDueFlashcards(@Request() req: any, @Query('limit') limit?: number, @Query('category') category?: string) {
     return this.vocabService.getDueFlashcards(req.user.sub, limit, category);

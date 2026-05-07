@@ -178,6 +178,12 @@ export default function VocabularyPage() {
     staleTime: 30_000,
   });
 
+  const { data: categoryCounts } = useQuery({
+    queryKey: ['vocab-categories'],
+    queryFn: () => api.get('/vocabulary/categories').then((r) => r.data.data as { category: string; count: number }[]).catch(() => []),
+    staleTime: 60_000,
+  });
+
   const { data: flashcardData, isLoading: loadingCards } = useQuery({
     queryKey: ['vocab-flashcards', category],
     queryFn: () => api.get('/vocabulary/flashcards', {
@@ -340,22 +346,31 @@ export default function VocabularyPage() {
         <div>
           <h2 className="text-base font-black text-slate-800 mb-3">Browse by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {CATEGORIES.map((cat, i) => (
-              <motion.button
-                key={cat.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.03 }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => startFlashcards(cat.id)}
-                className="bg-white rounded-2xl p-4 flex flex-col items-center gap-2 border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all"
-              >
-                <span className="text-3xl">{cat.emoji}</span>
-                <span className="text-slate-700 text-xs font-semibold">{cat.label}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-              </motion.button>
-            ))}
+            {CATEGORIES.map((cat, i) => {
+              const count = cat.id === 'all'
+                ? (categoryCounts ?? []).reduce((s, c) => s + c.count, 0)
+                : (categoryCounts ?? []).find((c) => c.category === cat.id)?.count ?? null;
+              return (
+                <motion.button
+                  key={cat.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.03 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => startFlashcards(cat.id)}
+                  className="bg-white rounded-2xl p-4 flex flex-col items-center gap-2 border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all"
+                >
+                  <span className="text-3xl">{cat.emoji}</span>
+                  <span className="text-slate-700 text-xs font-semibold">{cat.label}</span>
+                  {count !== null ? (
+                    <span className="text-xs text-slate-400 font-medium">{count} words</span>
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
