@@ -28,7 +28,7 @@ const RATINGS = [
   { quality: 5, label: 'Easy',   sub: 'Knew it!',      color: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300' },
 ];
 
-type View = 'categories' | 'flashcard';
+type View = 'categories' | 'flashcard' | 'summary';
 
 interface Word {
   id: string;
@@ -170,6 +170,7 @@ export default function VocabularyPage() {
   const [level, setLevel] = useState('all');
   const [cardIdx, setCardIdx] = useState(0);
   const [goodCount, setGoodCount] = useState(0);
+  const [summary, setSummary] = useState<{ total: number; correct: number; xp: number; category: string } | null>(null);
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -264,6 +265,7 @@ export default function VocabularyPage() {
     setCategory('all');
     setCardIdx(0);
     setGoodCount(0);
+    setSummary(null);
   };
 
   const LEVELS = [
@@ -283,10 +285,10 @@ export default function VocabularyPage() {
       setCardIdx((i) => i + 1);
     } else {
       const finalGood = quality >= 3 ? goodCount + 1 : goodCount;
-      toast.success(`Done! ${finalGood}/${allCards.length} correct · +${finalGood * 2} XP`);
       queryClient.invalidateQueries({ queryKey: ['vocab-flashcards'] });
       queryClient.invalidateQueries({ queryKey: ['vocab-stats'] });
-      goBack();
+      setSummary({ total: allCards.length, correct: finalGood, xp: finalGood * 2, category });
+      setView('summary');
     }
   };
 
@@ -298,6 +300,68 @@ export default function VocabularyPage() {
   };
 
   const levelLabel = LEVELS.find((l) => l.id === level)?.label ?? 'All Levels';
+
+  // ── SUMMARY VIEW ─────────────────────────────────────────────────────────────
+  if (view === 'summary' && summary) {
+    const pct = Math.round((summary.correct / summary.total) * 100);
+    const emoji = pct === 100 ? '🏆' : pct >= 70 ? '🎉' : pct >= 40 ? '💪' : '📖';
+    const catLabel = CATEGORIES.find((c) => c.id === summary.category)?.label ?? 'All Words';
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl border border-slate-100 shadow-lg p-8 max-w-sm w-full text-center space-y-6"
+        >
+          <div className="text-6xl">{emoji}</div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-800">Session Complete!</h2>
+            <p className="text-slate-400 text-sm mt-1">{catLabel}</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Reviewed', value: summary.total, color: 'bg-slate-50 text-slate-700' },
+              { label: 'Correct', value: summary.correct, color: 'bg-emerald-50 text-emerald-700' },
+              { label: 'XP Earned', value: `+${summary.xp}`, color: 'bg-amber-50 text-amber-700' },
+            ].map((s) => (
+              <div key={s.label} className={`rounded-2xl p-3 ${s.color}`}>
+                <div className="text-2xl font-black">{s.value}</div>
+                <div className="text-xs font-medium opacity-70 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-full bg-slate-100 rounded-full h-2.5">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
+            />
+          </div>
+          <p className="text-slate-500 text-sm -mt-3">{pct}% accuracy</p>
+
+          <div className="flex gap-3">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setCardIdx(0); setGoodCount(0); setView('flashcard'); setSummary(null); }}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
+            >
+              Practice Again
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={goBack}
+              className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors"
+            >
+              Done
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   // ── CATEGORIES VIEW ──────────────────────────────────────────────────────────
   if (view === 'categories') {
