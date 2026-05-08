@@ -6,7 +6,9 @@ export class VocabularyService {
   constructor(private prisma: PrismaService) {}
 
   async getWords(query: { category?: string; level?: string; page?: number; limit?: number }) {
-    const { category, level, page = 1, limit = 20 } = query;
+    const { category, level } = query;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
     const where: any = {};
     if (category) where.category = category;
@@ -72,13 +74,18 @@ export class VocabularyService {
     }
 
     easeFactor = Math.max(1.3, easeFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+
+    // Failed cards (Again/Hard) become due immediately so they show up in "Due for Review" right away.
     const nextReview = new Date();
-    nextReview.setDate(nextReview.getDate() + interval);
+    if (quality >= 3) nextReview.setDate(nextReview.getDate() + interval);
+
+    // "Easy" (5) explicitly signals mastery regardless of repetition count.
+    const isLearned = quality === 5 || repetitions >= 3;
 
     progress = await this.prisma.vocabProgress.upsert({
       where: { userId_wordId: { userId, wordId } },
-      update: { easeFactor, interval, repetitions, nextReview, lastReview: new Date(), isLearned: repetitions >= 3 },
-      create: { userId, wordId, easeFactor, interval, repetitions, nextReview, lastReview: new Date() },
+      update: { easeFactor, interval, repetitions, nextReview, lastReview: new Date(), isLearned },
+      create: { userId, wordId, easeFactor, interval, repetitions, nextReview, lastReview: new Date(), isLearned },
     });
 
     if (quality >= 3) {
@@ -89,12 +96,14 @@ export class VocabularyService {
   }
 
   async getUserVocabStats(userId: string) {
+    const now = new Date();
     const [total, learned, due] = await Promise.all([
       this.prisma.vocabProgress.count({ where: { userId } }),
       this.prisma.vocabProgress.count({ where: { userId, isLearned: true } }),
-      this.prisma.vocabProgress.count({ where: { userId, nextReview: { lte: new Date() } } }),
+      this.prisma.vocabProgress.count({ where: { userId, nextReview: { lte: now } } }),
     ]);
-    return { totalStudied: total, learned, dueForReview: due };
+    const scheduled = total - learned - due;
+    return { totalStudied: total, learned, dueForReview: due, scheduled };
   }
 
   async getDailyWords(userId: string, level: string, count = 10) {
@@ -108,17 +117,42 @@ export class VocabularyService {
     return { words, nativeLanguage: user?.nativeLanguage || 'ENGLISH' };
   }
 
-  async getFavorites(userId: string) {
+  async getDueWords(userId: string) {
+    const due = await this.prisma.vocabProgress.findMany({
+      where: { userId, nextReview: { lte: new Date() } },
+      include: { word: true },
+      orderBy: { nextReview: 'asc' },
+    });
+    return due.map((p) => p.word);
+  }
+
+  async getLearnedWords(userId: string) {
+    const progress = await this.prisma.vocabProgress.findMany({
+      where: { userId, isLearned: true },
+      include: { word: true },
+      orderBy: { lastReview: 'desc' },
+    });
+    return progress.map((p) => p.word);
+  }
+
+  async getFavorites(userId: string, level?: string) {
     const favorites = await this.prisma.vocabProgress.findMany({
-      where: { userId, isFavorite: true },
+      where: {
+        userId,
+        isFavorite: true,
+        ...(level && level !== 'all' ? { word: { level: level as any } } : {}),
+      },
       include: { word: true },
     });
     return favorites.map((f) => f.word);
   }
 
-  async getCategories() {
+  async getCategories(level?: string) {
+    const where: any = {};
+    if (level && level !== 'all') where.level = level;
     const counts = await this.prisma.vocabWord.groupBy({
       by: ['category'],
+      where,
       _count: { id: true },
       orderBy: { category: 'asc' },
     });

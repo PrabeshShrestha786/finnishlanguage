@@ -16,18 +16,28 @@ export class VocabularyController {
   }
 
   @Get('categories')
-  getCategories() {
-    return this.vocabService.getCategories();
+  getCategories(@Query('level') level?: string) {
+    return this.vocabService.getCategories(level);
+  }
+
+  @Get('due')
+  getDueWords(@Request() req: any) {
+    return this.vocabService.getDueWords(req.user.sub);
+  }
+
+  @Get('learned')
+  getLearnedWords(@Request() req: any) {
+    return this.vocabService.getLearnedWords(req.user.sub);
   }
 
   @Get('favorites')
-  getFavorites(@Request() req: any) {
-    return this.vocabService.getFavorites(req.user.sub);
+  getFavorites(@Request() req: any, @Query('level') level?: string) {
+    return this.vocabService.getFavorites(req.user.sub, level);
   }
 
   @Get('flashcards')
-  getDueFlashcards(@Request() req: any, @Query('limit') limit?: number, @Query('category') category?: string, @Query('level') level?: string) {
-    return this.vocabService.getDueFlashcards(req.user.sub, limit, category, level);
+  getDueFlashcards(@Request() req: any, @Query('limit') limit?: string, @Query('category') category?: string, @Query('level') level?: string) {
+    return this.vocabService.getDueFlashcards(req.user.sub, limit ? Number(limit) : undefined, category, level);
   }
 
   @Get('stats')

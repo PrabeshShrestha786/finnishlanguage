@@ -39,7 +39,7 @@ export class AiController {
   }
 
   @Post('tts')
-  @ApiOperation({ summary: 'Text to speech with native Finnish voice (ElevenLabs)' })
+  @ApiOperation({ summary: 'Text to speech with native Finnish voice (Google Cloud TTS)' })
   async textToSpeech(@Body() body: { text: string }, @Res() res: Response) {
     const audio = await this.aiService.textToSpeech(body.text);
     res.setHeader('Content-Type', 'audio/mpeg');
@@ -71,6 +71,12 @@ export class AiController {
   @ApiOperation({ summary: 'Generate AI exercises' })
   generateExercises(@Body() body: { topic: string; level: string; type: string; count?: number }) {
     return this.aiService.generateExercises(body.topic, body.level, body.type, body.count);
+  }
+
+  @Post('vocabulary/generate')
+  @ApiOperation({ summary: 'Generate an AI vocabulary practice set' })
+  generateVocabulary(@Body() body: { level: string; topic?: string; count?: number }) {
+    return this.aiService.generateVocabularySet(body.level, body.topic, body.count);
   }
 
   @Post('speaking/generate')

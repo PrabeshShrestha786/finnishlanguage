@@ -987,6 +987,65 @@ Respond ONLY with valid JSON:
     }
   }
 
+  async generateVocabularySet(level: string, topic?: string, count = 10) {
+    const levelGuide: Record<string, string> = {
+      A1: 'very basic, high-frequency everyday words a complete beginner needs',
+      A2: 'elementary everyday vocabulary for simple conversations',
+      B1: 'intermediate practical vocabulary for real-life situations',
+      B2: 'upper-intermediate vocabulary including abstract and nuanced words',
+    };
+    const topicLine = topic ? `Topic: ${topic}` : 'Choose a useful everyday topic (e.g. food, transport, home, family, weather)';
+
+    const completion = await this.groq.chat.completions.create({
+      model: this.config.get<string>('groq.model') || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'You are a Finnish language teacher. Generate vocabulary sets as valid JSON.' },
+        {
+          role: 'user',
+          content: `Generate exactly ${count} Finnish vocabulary words for CEFR level ${level} (${levelGuide[level] || levelGuide['A2']}).
+${topicLine}
+
+Return ONLY valid JSON in this exact shape:
+{
+  "topic": "Topic Name",
+  "words": [
+    {
+      "finnish": "kahvi",
+      "english": "coffee",
+      "pronunciation": "KAH-vi",
+      "exampleSentence": "Haluatko kahvia?",
+      "exampleTranslation": "Do you want coffee?"
+    }
+  ]
+}
+
+Rules:
+- pronunciation: simple phonetic guide using capital syllables, no brackets
+- exampleSentence: natural Finnish sentence using the word at ${level} difficulty
+- exampleTranslation: English translation of that sentence
+- All words must suit CEFR ${level}`,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+    });
+
+    const data = JSON.parse(completion.choices[0].message.content || '{}');
+    return {
+      topic: data.topic || topic || 'AI Practice Set',
+      level,
+      words: (data.words || []).map((w: any, i: number) => ({
+        id: `ai-${i}-${Date.now()}`,
+        finnish: w.finnish,
+        english: w.english,
+        pronunciation: w.pronunciation,
+        exampleSentence: w.exampleSentence,
+        exampleTranslation: w.exampleTranslation,
+        level,
+      })),
+    };
+  }
+
   async generateSpeakingPhrases(level: string, count = 6, topic?: string) {
     const levelGuide: Record<string, string> = {
       A1: 'very simple, 2-4 words each — greetings, reactions, one-word-plus-verb',
