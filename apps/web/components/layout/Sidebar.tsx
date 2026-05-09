@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
   LayoutDashboard, BookOpen, Headphones, Mic, PenTool,
-  Brain, GraduationCap, Trophy, MessageCircle, Medal,
+  Brain, GraduationCap, Trophy, Medal,
   Settings, LogOut, ChevronLeft, ChevronRight, Flame, Zap,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -21,7 +21,6 @@ const NAV_ITEMS = [
   { href: '/vocabulary', icon: Brain,            label: 'Vocabulary', color: 'from-yellow-400 to-orange-500' },
   { href: '/grammar',    icon: GraduationCap,    label: 'Grammar',    color: 'from-pink-500 to-rose-600' },
   { href: '/yki-prep',   icon: Trophy,           label: 'YKI Prep',   color: 'from-blue-600 to-indigo-700' },
-  { href: '/ai-tutor',   icon: MessageCircle,    label: 'AI Tutor',   color: 'from-violet-500 to-blue-600' },
   { href: '/leaderboard', icon: Medal,           label: 'Leaderboard', color: 'from-amber-400 to-orange-500' },
 ];
 
