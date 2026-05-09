@@ -110,7 +110,7 @@ function PracticeQuiz({ topic, onClose }: { topic: GrammarTopic; onClose: () => 
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center">
         <div className="text-4xl mb-4">⚠️</div>
-        <h2 className="text-lg font-black text-slate-800 mb-2">Couldn't load exercises</h2>
+        <h2 className="text-lg font-black text-slate-800 mb-2">Couldn&apos;t load exercises</h2>
         <p className="text-slate-500 text-sm mb-6 leading-relaxed">{error}</p>
         <div className="flex gap-3">
           <button onClick={onClose}
