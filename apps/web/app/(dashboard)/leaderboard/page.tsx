@@ -8,6 +8,38 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 const TABS = ['Weekly', 'All Time'] as const;
+
+const LANGUAGE_CODES: Record<string, string> = {
+  ENGLISH: 'gb',
+  FINNISH: 'fi',
+  NEPALI: 'np',
+  HINDI: 'in',
+  ARABIC: 'sa',
+  URDU: 'pk',
+  SPANISH: 'es',
+  FRENCH: 'fr',
+  GERMAN: 'de',
+  RUSSIAN: 'ru',
+  CHINESE: 'cn',
+  JAPANESE: 'jp',
+  KOREAN: 'kr',
+  PORTUGUESE: 'pt',
+  ITALIAN: 'it',
+  SWEDISH: 'se',
+};
+
+function FlagImage({ code }: { code?: string }) {
+  if (!code) return <span className="text-lg">🌍</span>;
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      alt={code.toUpperCase()}
+      width={28}
+      height={20}
+      className="rounded-sm object-cover flex-shrink-0"
+    />
+  );
+}
 type Tab = typeof TABS[number];
 
 function RankBadge({ rank }: { rank: number }) {
@@ -21,7 +53,7 @@ function mapWeekly(entries: any[]): any[] {
   return entries.map((e, i) => ({
     rank: i + 1,
     name: e.user?.username || e.user?.firstName || 'User',
-    flag: '🌍',
+    flagCode: LANGUAGE_CODES[e.user?.nativeLanguage],
     xp: e.xp,
     streak: e.user?.currentStreak || 0,
     level: e.user?.finnishLevel || 'A1',
@@ -33,7 +65,7 @@ function mapAllTime(users: any[]): any[] {
   return users.map((u, i) => ({
     rank: i + 1,
     name: u.username || u.firstName || 'User',
-    flag: '🌍',
+    flagCode: LANGUAGE_CODES[u.nativeLanguage],
     xp: u.totalXP,
     streak: u.currentStreak || 0,
     level: u.finnishLevel || 'A1',
@@ -97,7 +129,7 @@ export default function LeaderboardPage() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex flex-col items-center">
                 {leaders[1] ? (
                   <>
-                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-slate-400 flex items-center justify-center text-xl mb-2">{leaders[1].flag}</div>
+                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-slate-400 flex items-center justify-center overflow-hidden mb-2"><FlagImage code={leaders[1].flagCode} /></div>
                     <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[1].name}</div>
                     <div className="text-slate-300 text-xs mb-2">{leaders[1].xp.toLocaleString()} XP</div>
                   </>
@@ -115,7 +147,7 @@ export default function LeaderboardPage() {
               {/* 1st place */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col items-center">
                 <Crown className="w-6 h-6 text-amber-400 mb-1" />
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-4 border-amber-300 flex items-center justify-center text-2xl mb-2 shadow-lg shadow-amber-500/30">{leaders[0].flag}</div>
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-4 border-amber-300 flex items-center justify-center overflow-hidden mb-2 shadow-lg shadow-amber-500/30"><FlagImage code={leaders[0].flagCode} /></div>
                 <div className="text-white font-black text-base mb-1 max-w-24 truncate">{leaders[0].name}</div>
                 <div className="text-amber-400 font-bold text-sm mb-2">{leaders[0].xp.toLocaleString()} XP</div>
                 <div className="w-16 h-24 bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-xl flex items-center justify-center shadow-lg"><span className="text-white font-black text-2xl">1</span></div>
@@ -124,7 +156,7 @@ export default function LeaderboardPage() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col items-center">
                 {leaders[2] ? (
                   <>
-                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-amber-700 flex items-center justify-center text-xl mb-2">{leaders[2].flag}</div>
+                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-amber-700 flex items-center justify-center overflow-hidden mb-2"><FlagImage code={leaders[2].flagCode} /></div>
                     <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[2].name}</div>
                     <div className="text-slate-300 text-xs mb-2">{leaders[2].xp.toLocaleString()} XP</div>
                   </>
@@ -191,16 +223,16 @@ export default function LeaderboardPage() {
             <p className="text-sm mt-1">Complete lessons to appear on the leaderboard!</p>
           </div>
         ) : (
-          leaders.slice(0, 10).map((entry: any, i: number) => {
+          leaders.slice(0, 3).map((entry: any, i: number) => {
             const isMe = entry.name === (user?.username || user?.firstName);
             return (
               <motion.div key={entry.rank} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className={`flex items-center gap-4 px-5 py-4 ${i < leaders.length - 1 ? 'border-b border-slate-50' : ''} ${isMe ? 'bg-blue-50/50' : 'hover:bg-slate-50'} transition-colors`}>
+                className={`flex items-center gap-4 px-5 py-4 ${i < 2 ? 'border-b border-slate-50' : ''} ${isMe ? 'bg-blue-50/50' : 'hover:bg-slate-50'} transition-colors`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   <RankBadge rank={entry.rank} />
                 </div>
-                <div className="text-2xl flex-shrink-0">{entry.flag}</div>
+                <div className="flex-shrink-0"><FlagImage code={entry.flagCode} /></div>
                 <div className="flex-1 min-w-0">
                   <div className={`font-bold text-sm ${isMe ? 'text-blue-700' : 'text-slate-800'}`}>
                     {entry.name} {isMe && <span className="text-blue-500 font-normal">(You)</span>}

@@ -561,11 +561,13 @@ export default function ReadingPage() {
   const [genTopic, setGenTopic] = useState('');
 
   useEffect(() => {
+    if (!user?.id) return;
     try {
-      const saved = localStorage.getItem('finnmate-reading-history');
+      const saved = localStorage.getItem(`finnmate-reading-history-${user.id}`);
       if (saved) setCompletedStories(JSON.parse(saved));
+      else setCompletedStories({});
     } catch {}
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     api.get('/ai/stories')
@@ -741,7 +743,7 @@ export default function ReadingPage() {
         if (selectedStory) {
           setCompletedStories((prev) => {
             const updated = { ...prev, [selectedStory.id]: { score: finalCorrect, pct: finalPct } };
-            try { localStorage.setItem('finnmate-reading-history', JSON.stringify(updated)); } catch {}
+            try { if (user?.id) localStorage.setItem(`finnmate-reading-history-${user.id}`, JSON.stringify(updated)); } catch {}
             return updated;
           });
         }

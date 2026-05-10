@@ -39,7 +39,13 @@ export default function DashboardPage() {
   const weeklyXPArr: number[] = Array.isArray(stats?.weeklyXP) ? stats.weeklyXP : [0, 0, 0, 0, 0, 0, 0];
   const weeklyXP: number = weeklyXPArr.reduce((sum: number, v: number) => sum + v, 0);
 
-  const leaderboardEntries: { rank: number; name: string; xp: number; streak: number; isUser: boolean }[] =
+  const LANGUAGE_CODES: Record<string, string> = {
+    ENGLISH: 'gb', FINNISH: 'fi', NEPALI: 'np', HINDI: 'in', ARABIC: 'sa',
+    URDU: 'pk', SPANISH: 'es', FRENCH: 'fr', GERMAN: 'de', RUSSIAN: 'ru',
+    CHINESE: 'cn', JAPANESE: 'jp', KOREAN: 'kr', PORTUGUESE: 'pt', ITALIAN: 'it', SWEDISH: 'se',
+  };
+
+  const leaderboardEntries: { rank: number; name: string; xp: number; streak: number; isUser: boolean; flagCode?: string }[] =
     Array.isArray(weeklyRaw)
       ? weeklyRaw.slice(0, 3).map((e: any, i: number) => ({
           rank: i + 1,
@@ -47,6 +53,7 @@ export default function DashboardPage() {
           xp: e.xp,
           streak: e.user?.currentStreak || 0,
           isUser: e.user?.username === user?.username,
+          flagCode: LANGUAGE_CODES[e.user?.nativeLanguage],
         }))
       : [];
 
@@ -111,13 +118,18 @@ export default function DashboardPage() {
                 <div key={entry.rank} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
                   entry.isUser ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50'
                 }`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${
                     entry.rank === 1 ? 'bg-amber-400 text-white' :
                     entry.rank === 2 ? 'bg-slate-300 text-slate-700' :
                     'bg-orange-300 text-white'
                   }`}>
                     {entry.rank}
                   </div>
+                  {entry.flagCode ? (
+                    <img src={`https://flagcdn.com/w40/${entry.flagCode}.png`} alt="" width={24} height={17} className="rounded-sm object-cover flex-shrink-0" />
+                  ) : (
+                    <span className="text-base flex-shrink-0">🌍</span>
+                  )}
                   <div className="flex-1">
                     <div className="text-slate-800 font-semibold text-sm">{entry.name}</div>
                     <div className="flex items-center gap-1 text-xs text-slate-400">

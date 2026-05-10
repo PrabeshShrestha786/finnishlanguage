@@ -14,9 +14,11 @@ import Image from 'next/image';
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const LANGUAGES = [
   { code: 'ENGLISH', label: 'English', flag: '🇬🇧' },
+  { code: 'FINNISH', label: 'Finnish', flag: '🇫🇮' },
   { code: 'NEPALI', label: 'Nepali', flag: '🇳🇵' },
   { code: 'HINDI', label: 'Hindi', flag: '🇮🇳' },
   { code: 'ARABIC', label: 'Arabic', flag: '🇸🇦' },
+  { code: 'URDU', label: 'Urdu', flag: '🇵🇰' },
   { code: 'SPANISH', label: 'Spanish', flag: '🇪🇸' },
   { code: 'FRENCH', label: 'French', flag: '🇫🇷' },
   { code: 'GERMAN', label: 'German', flag: '🇩🇪' },

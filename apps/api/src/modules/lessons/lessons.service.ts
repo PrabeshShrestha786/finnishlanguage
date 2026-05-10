@@ -117,17 +117,24 @@ export class LessonsService {
     return { attempt, isCorrect, score, xpEarned };
   }
 
+  private todayFinland(): Date {
+    const now = new Date();
+    const localStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Helsinki' });
+    const dateStr = localStr.split(',')[0];
+    return new Date(`${dateStr}T00:00:00.000Z`);
+  }
+
   private async updateStreak(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.todayFinland();
+    const yesterday = new Date(today);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
     const existing = await this.prisma.streakRecord.findUnique({
       where: { userId_date: { userId, date: today } },
     });
     if (existing) return;
 
     await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
     const yest = await this.prisma.streakRecord.findUnique({
       where: { userId_date: { userId, date: yesterday } },
     });

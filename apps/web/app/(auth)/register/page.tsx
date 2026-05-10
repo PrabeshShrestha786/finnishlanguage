@@ -18,6 +18,7 @@ const LEVELS = [
 
 const LANGUAGES = [
   { code: 'ENGLISH', label: 'English', flag: '🇬🇧' },
+  { code: 'FINNISH', label: 'Finnish', flag: '🇫🇮' },
   { code: 'NEPALI', label: 'Nepali', flag: '🇳🇵' },
   { code: 'HINDI', label: 'Hindi', flag: '🇮🇳' },
   { code: 'ARABIC', label: 'Arabic', flag: '🇸🇦' },

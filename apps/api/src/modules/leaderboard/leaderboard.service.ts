@@ -24,7 +24,7 @@ export class LeaderboardService {
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: grouped.map((g) => g.userId) } },
-      select: { id: true, username: true, firstName: true, avatar: true, currentStreak: true, finnishLevel: true },
+      select: { id: true, username: true, firstName: true, avatar: true, currentStreak: true, finnishLevel: true, nativeLanguage: true },
     });
 
     const userMap = new Map(users.map((u) => [u.id, u]));
@@ -40,7 +40,7 @@ export class LeaderboardService {
     return this.prisma.user.findMany({
       select: {
         id: true, username: true, firstName: true, avatar: true,
-        totalXP: true, currentStreak: true, finnishLevel: true,
+        totalXP: true, currentStreak: true, finnishLevel: true, nativeLanguage: true,
       },
       orderBy: { totalXP: 'desc' },
       take: limit,

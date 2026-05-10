@@ -53,6 +53,7 @@ export class UsersService {
   }
 
   async getDashboardStats(userId: string) {
+    await this.resetBrokenStreak(userId);
     const [user, weeklyAttempts, recentLessons, vocabStats, lessonsCompleted] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
@@ -131,31 +132,57 @@ export class UsersService {
     return { xpEarned };
   }
 
+  // Returns midnight of today in Finland time (Europe/Helsinki) as a plain UTC-stored Date.
+  // Ensures streak day boundaries match the Finnish calendar day, not the server's UTC day.
+  private todayFinland(): Date {
+    const now = new Date();
+    const localStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Helsinki' }); // "YYYY-MM-DD, HH:MM:SS"
+    const dateStr = localStr.split(',')[0]; // "YYYY-MM-DD"
+    return new Date(`${dateStr}T00:00:00.000Z`);
+  }
+
   async updateStreak(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.todayFinland();
+    const yesterday = new Date(today);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const existing = await this.prisma.streakRecord.findUnique({
       where: { userId_date: { userId, date: today } },
     });
+    if (existing) return;
 
-    if (!existing) {
-      await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yest = await this.prisma.streakRecord.findUnique({
-        where: { userId_date: { userId, date: yesterday } },
-      });
+    await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
 
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      const newStreak = yest ? (user?.currentStreak || 0) + 1 : 1;
+    const yest = await this.prisma.streakRecord.findUnique({
+      where: { userId_date: { userId, date: yesterday } },
+    });
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const newStreak = yest ? (user?.currentStreak || 0) + 1 : 1;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        currentStreak: newStreak,
+        longestStreak: { set: Math.max(user?.longestStreak || 0, newStreak) },
+        lastActiveAt: new Date(),
+      },
+    });
+  }
+
+  // Resets streak to 0 if the user has no activity record for today or yesterday.
+  // Called on dashboard fetch so the UI never shows a stale streak.
+  async resetBrokenStreak(userId: string) {
+    const today = this.todayFinland();
+    const yesterday = new Date(today);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
+    const recent = await this.prisma.streakRecord.findFirst({
+      where: { userId, date: { gte: yesterday } },
+    });
+    if (!recent) {
       await this.prisma.user.update({
         where: { id: userId },
-        data: {
-          currentStreak: newStreak,
-          longestStreak: { set: Math.max(user?.longestStreak || 0, newStreak) },
-          lastActiveAt: new Date(),
-        },
+        data: { currentStreak: 0 },
       });
     }
   }

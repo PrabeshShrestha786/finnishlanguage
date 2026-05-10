@@ -41,6 +41,7 @@ enum FinnishLevel {
 
 enum NativeLanguage {
   ENGLISH
+  FINNISH
   NEPALI
   HINDI
   ARABIC
