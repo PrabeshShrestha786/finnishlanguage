@@ -41,7 +41,23 @@ const CATEGORIES = [
   { id: 'IT',           label: 'Networking & IT', emoji: '🔧' },
   { id: 'Tools',        label: 'Tools & Equipment', emoji: '🧰' },
   { id: 'Interview',    label: 'Interview',  emoji: '📄' },
-  
+  { id: 'WorkplaceCommunication', label: 'Workplace Comm.', emoji: '📧' },
+  { id: 'Pronouns',               label: 'Pronouns',        emoji: '🧍' },
+  { id: 'Adjectives',             label: 'Adjectives',      emoji: '🔤' },
+  { id: 'Prepositions',           label: 'Prepositions',    emoji: '🔗' },
+  { id: 'Opposites',              label: 'Opposites',       emoji: '🧠' },
+  { id: 'Renting',                label: 'Renting Apt.',     emoji: '🏡' },
+  { id: 'Emergency',              label: 'Emergency',       emoji: '🚑' },
+  { id: 'Airport',                label: 'Airport',         emoji: '🧳' },
+  { id: 'Police',                 label: 'Police & Safety', emoji: '👮' },
+  { id: 'Pets',                   label: 'Pets & Animals',  emoji: '🐶' },
+  { id: 'Gaming',                 label: 'Gaming',          emoji: '🎮' },
+  { id: 'Music',                  label: 'Music',           emoji: '🎵' },
+  { id: 'Movies',                 label: 'Movies & TV',     emoji: '🎬' },
+  { id: 'Sports',                 label: 'Sports',          emoji: '⚽' },
+  { id: 'Slang',                  label: 'Finnish Slang',   emoji: '🍕' },
+  { id: 'FunnyExpressions',       label: 'Funny Expressions', emoji: '😂' },
+
 
   
 ];
