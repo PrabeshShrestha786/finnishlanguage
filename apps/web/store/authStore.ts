@@ -17,6 +17,7 @@ interface User {
   totalXP: number;
   currentStreak: number;
   longestStreak: number;
+  lastActiveAt?: string | null;
   subscription?: { plan: string; status: string };
 }
 

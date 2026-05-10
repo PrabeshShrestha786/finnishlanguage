@@ -207,7 +207,7 @@ export default function ProfilePage() {
           <div className="-mt-8 flex-shrink-0 relative w-fit">
             <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-xl overflow-hidden">
               {user?.avatar ? (
-                <Image src={user.avatar} alt="" fill className="object-cover" />
+                <Image src={user.avatar} alt="" width={64} height={64} className="object-cover w-full h-full" />
               ) : (
                 user?.firstName?.[0] || 'U'
               )}

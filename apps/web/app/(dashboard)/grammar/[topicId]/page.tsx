@@ -577,7 +577,7 @@ export default function TopicPage() {
       <div className="max-w-2xl mx-auto text-center py-20">
         <p className="text-slate-500 text-lg">Topic not found.</p>
         <button onClick={() => router.push('/grammar')}
-          className="mt-4 text-blue-600 font-semibold hover:underline">
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
           ← Back to Grammar
         </button>
       </div>
@@ -600,7 +600,7 @@ export default function TopicPage() {
         <motion.button
           initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
           onClick={() => router.push('/grammar')}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-semibold transition-colors group">
+          className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           Grammar
         </motion.button>

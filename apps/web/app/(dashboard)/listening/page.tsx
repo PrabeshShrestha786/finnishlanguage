@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock, Loader2, Wand2, Trash2, Sparkles, X } from 'lucide-react';
+import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock, Loader2, Trash2, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -342,17 +342,33 @@ export default function ListeningPage() {
 
             {/* Toolbar */}
             <div className="flex items-center gap-2 flex-wrap">
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              <button
+                onClick={() => setShowGenPanel(false)}
+                className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 ${
+                  !showGenPanel
+                    ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-md'
+                    : 'bg-white border-2 border-purple-500 text-purple-600 hover:bg-purple-50'
+                }`}>
+                <Headphones className="w-4 h-4" /> Listening Tracks
+              </button>
+
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => setShowGenPanel((v) => !v)} disabled={generating}
-                className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60">
-                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {generating ? 'Generating…' : 'Generate with AI'}
+                className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-60 ${
+                  showGenPanel || generating
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                    : 'bg-white border-2 border-violet-500 text-violet-600 hover:bg-violet-50'
+                }`}>
+                {generating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                  : <><Sparkles className="w-4 h-4" /> Generate with AI</>}
               </motion.button>
 
               <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-1.5">
                 <Headphones className="w-4 h-4 text-cyan-600" />
                 <span className="text-cyan-700 text-sm font-semibold">
-                  {TRACKS.length + generatedTracks.length} Tracks{generatedTracks.length > 0 ? ` · ${generatedTracks.length} saved` : ''}
+                  {TRACKS.filter((t) => filter === 'All' || t.level === filter).length + generatedTracks.filter((t) => filter === 'All' || t.level === filter).length} Tracks{generatedTracks.length > 0 ? ` · ${generatedTracks.filter((t) => filter === 'All' || t.level === filter).length} saved` : ''}
                 </span>
               </div>
 
@@ -367,56 +383,88 @@ export default function ListeningPage() {
               </div>
             </div>
 
-            {/* Generate Panel */}
-            <AnimatePresence>
-              {showGenPanel && (
-                <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                  className="bg-white border border-violet-200 rounded-2xl p-5 shadow-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-violet-500" />
-                      <span className="font-bold text-slate-800">Generate a New Track</span>
-                      <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">Powered by Groq AI</span>
+            {/* Generate with AI — full two-column view */}
+            {showGenPanel && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid md:grid-cols-3 gap-5"
+              >
+                {/* Left: controls */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-slate-800 font-black text-base mb-4 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-violet-500" /> Generate a Listening Track
+                    </h3>
+
+                    {/* Level selector */}
+                    <div className="flex items-center gap-3 mb-5 flex-wrap">
+                      <span className="text-slate-700 font-semibold text-sm">Level:</span>
+                      {(['A1', 'A2', 'B1', 'B2'] as const).map((l) => (
+                        <button key={l} onClick={() => setGenLevel(l)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${genLevel === l ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                          {l}
+                        </button>
+                      ))}
                     </div>
-                    <button onClick={() => setShowGenPanel(false)} className="text-slate-400 hover:text-slate-600">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-shrink-0">
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">Level</label>
-                      <div className="flex gap-1.5">
-                        {(['A1', 'A2', 'B1', 'B2'] as const).map((lvl) => (
-                          <button key={lvl} onClick={() => setGenLevel(lvl)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                              genLevel === lvl ? 'bg-violet-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}>{lvl}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">Topic <span className="font-normal text-slate-400">(optional)</span></label>
-                      <input type="text" value={genTopic} onChange={(e) => setGenTopic(e.target.value)}
+
+                    {/* Topic input */}
+                    <div className="mb-5">
+                      <label className="text-slate-600 text-sm font-semibold block mb-1.5">Topic <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <input
+                        value={genTopic}
+                        onChange={(e) => setGenTopic(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && generateTrack()}
                         placeholder="e.g. Finnish sauna, Helsinki market, winter sports…"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all" />
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-all"
+                      />
                     </div>
-                    <div className="flex items-end">
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                        onClick={generateTrack}
-                        className="btn-primary px-5 py-2 text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
-                        <Sparkles className="w-4 h-4" /> Generate
-                      </motion.button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-3">Tracks are saved to your library and persist across sessions.</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            {/* All Tracks Grid */}
+                    {/* Generate button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      onClick={generateTrack} disabled={generating}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+                    >
+                      {generating
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                        : <><Sparkles className="w-4 h-4" /> Generate Track</>}
+                    </motion.button>
+
+                    {/* Note */}
+                    <p className="text-xs text-slate-400 mt-3 text-center">
+                      Tracks are saved to your library and earn you <span className="text-amber-500 font-semibold">+50 XP</span> on completion.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: how it works */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                  <h3 className="text-slate-700 font-black text-sm uppercase tracking-widest mb-4">How it works</h3>
+                  <div className="space-y-4">
+                    {[
+                      { step: '1', title: 'Choose your level', desc: 'Pick A1–B2 to match your Finnish listening level.' },
+                      { step: '2', title: 'Add a topic (optional)', desc: 'Guide the AI with a theme like "café" or "weather".' },
+                      { step: '3', title: 'Audio is generated', desc: 'A unique Finnish audio track with transcript and quiz is created instantly.' },
+                      { step: '4', title: 'Listen & earn XP', desc: 'Answer the comprehension questions to earn XP. Your track is saved to your library.' },
+                    ].map(({ step, title, desc }) => (
+                      <div key={step} className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-0.5">
+                          {step}
+                        </div>
+                        <div>
+                          <div className="text-slate-800 text-sm font-semibold">{title}</div>
+                          <div className="text-slate-400 text-xs mt-0.5 leading-relaxed">{desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* All Tracks Grid — only shown when generate panel is closed */}
+            {!showGenPanel && (
             <div className="grid md:grid-cols-2 gap-4">
               {/* Generated tracks first */}
               {generatedTracks
@@ -486,13 +534,14 @@ export default function ListeningPage() {
                   </motion.div>
                 ))}
             </div>
+            )}
           </motion.div>
         )}
 
         {/* PLAYER VIEW */}
         {view === 'player' && selectedTrack && !quizMode && (
           <motion.div key="player" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-2xl mx-auto space-y-4">
-            <button onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setView('list'); }} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
+            <button onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setView('list'); }} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
               ← Back to tracks
             </button>
 

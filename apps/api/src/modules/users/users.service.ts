@@ -127,6 +127,7 @@ export class UsersService {
       }),
       this.leaderboard.addXP(userId, xpEarned),
     ]);
+    await this.updateStreak(userId);
     return { xpEarned };
   }
 

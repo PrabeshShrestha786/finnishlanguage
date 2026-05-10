@@ -14,12 +14,12 @@ import { useAuthStore } from '@/store/authStore';
 
 const NAV_ITEMS = [
   { href: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard',  color: 'from-blue-500 to-indigo-600' },
+  { href: '/vocabulary', icon: Brain,            label: 'Vocabulary', color: 'from-yellow-400 to-orange-500' },
+  { href: '/grammar',    icon: GraduationCap,    label: 'Grammar',    color: 'from-pink-500 to-rose-600' },
   { href: '/reading',    icon: BookOpen,         label: 'Reading',    color: 'from-cyan-500 to-blue-500' },
   { href: '/writing',    icon: PenTool,          label: 'Writing',    color: 'from-blue-500 to-indigo-600' },
   { href: '/listening',  icon: Headphones,       label: 'Listening',  color: 'from-purple-500 to-violet-600' },
   { href: '/speaking',   icon: Mic,              label: 'Speaking',   color: 'from-emerald-400 to-teal-500' },
-  { href: '/vocabulary', icon: Brain,            label: 'Vocabulary', color: 'from-yellow-400 to-orange-500' },
-  { href: '/grammar',    icon: GraduationCap,    label: 'Grammar',    color: 'from-pink-500 to-rose-600' },
   { href: '/yki-prep',   icon: Trophy,           label: 'YKI Prep',   color: 'from-blue-600 to-indigo-700' },
   { href: '/leaderboard', icon: Medal,           label: 'Leaderboard', color: 'from-amber-400 to-orange-500' },
 ];
@@ -30,6 +30,16 @@ export default function Sidebar() {
   const { user, logout } = useAuthStore();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+
+  const effectiveStreak = (() => {
+    if (!user?.currentStreak || !user?.lastActiveAt) return 0;
+    const lastActive = new Date(user.lastActiveAt);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    lastActive.setHours(0, 0, 0, 0);
+    return lastActive >= yesterday ? user.currentStreak : 0;
+  })();
 
   return (
     <motion.aside
@@ -69,7 +79,7 @@ export default function Sidebar() {
         <div className="p-3 mx-2 mt-3 rounded-xl bg-orange-50 border border-orange-100">
           <div className="flex items-center gap-2">
             <Flame className="w-4 h-4 text-orange-500 streak-flame" />
-            <span className="text-orange-600 text-xs font-bold">{user?.currentStreak || 0} day streak</span>
+            <span className="text-orange-600 text-xs font-bold">{effectiveStreak} day streak</span>
             <Zap className="w-3.5 h-3.5 text-amber-500 ml-auto" />
             <span className="text-amber-600 text-xs font-bold">{user?.totalXP?.toLocaleString() || 0}</span>
           </div>
@@ -122,7 +132,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all group">
             <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {user?.avatar ? (
-                <Image src={user.avatar} alt="" fill className="object-cover" />
+                <Image src={user.avatar} alt="" width={32} height={32} className="object-cover w-full h-full" />
               ) : (
                 <span className="text-white font-bold text-sm">{user?.firstName?.[0] || 'U'}</span>
               )}

@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Flame, Zap, Crown, Medal, Star, TrendingUp, Users, Loader2 } from 'lucide-react';
+import { Trophy, Flame, Zap, Crown, Medal, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -76,10 +76,8 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-black text-slate-800 mb-0.5">Leaderboard</h1>
-        <p className="text-slate-500 text-sm">Compete with Finnish learners worldwide</p>
-      </motion.div>
+
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
 
       {/* Top 3 Podium */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
@@ -89,46 +87,80 @@ export default function LeaderboardPage() {
           <div className="text-center text-white/60 text-xs font-bold uppercase tracking-wide mb-5">
             {tab === 'Weekly' ? 'Top Learners This Week' : 'All-Time Top Learners'}
           </div>
-          {leaders.length >= 3 ? (
+          {isLoading ? (
+            <div className="text-center text-white/40 text-sm py-4">Loading...</div>
+          ) : leaders.length === 0 ? (
+            <div className="text-center text-white/40 text-sm py-4">Start learning to appear here!</div>
+          ) : (
             <div className="flex items-end justify-center gap-4">
+              {/* 2nd place */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-slate-400 flex items-center justify-center text-xl mb-2">{leaders[1]?.flag}</div>
-                <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[1]?.name}</div>
-                <div className="text-slate-300 text-xs mb-2">{leaders[1]?.xp.toLocaleString()} XP</div>
+                {leaders[1] ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-slate-400 flex items-center justify-center text-xl mb-2">{leaders[1].flag}</div>
+                    <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[1].name}</div>
+                    <div className="text-slate-300 text-xs mb-2">{leaders[1].xp.toLocaleString()} XP</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-slate-700/40 border-2 border-slate-600 flex items-center justify-center mb-2">
+                      <span className="text-slate-500 text-xs">?</span>
+                    </div>
+                    <div className="text-slate-600 text-sm mb-1">—</div>
+                    <div className="text-slate-600 text-xs mb-2">—</div>
+                  </>
+                )}
                 <div className="w-16 h-16 bg-slate-500 rounded-t-xl flex items-center justify-center"><span className="text-white font-black text-xl">2</span></div>
               </motion.div>
+              {/* 1st place */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col items-center">
                 <Crown className="w-6 h-6 text-amber-400 mb-1" />
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-4 border-amber-300 flex items-center justify-center text-2xl mb-2 shadow-lg shadow-amber-500/30">{leaders[0]?.flag}</div>
-                <div className="text-white font-black text-base mb-1 max-w-24 truncate">{leaders[0]?.name}</div>
-                <div className="text-amber-400 font-bold text-sm mb-2">{leaders[0]?.xp.toLocaleString()} XP</div>
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-4 border-amber-300 flex items-center justify-center text-2xl mb-2 shadow-lg shadow-amber-500/30">{leaders[0].flag}</div>
+                <div className="text-white font-black text-base mb-1 max-w-24 truncate">{leaders[0].name}</div>
+                <div className="text-amber-400 font-bold text-sm mb-2">{leaders[0].xp.toLocaleString()} XP</div>
                 <div className="w-16 h-24 bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-xl flex items-center justify-center shadow-lg"><span className="text-white font-black text-2xl">1</span></div>
               </motion.div>
+              {/* 3rd place */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-amber-700 flex items-center justify-center text-xl mb-2">{leaders[2]?.flag}</div>
-                <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[2]?.name}</div>
-                <div className="text-slate-300 text-xs mb-2">{leaders[2]?.xp.toLocaleString()} XP</div>
+                {leaders[2] ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-slate-700 border-2 border-amber-700 flex items-center justify-center text-xl mb-2">{leaders[2].flag}</div>
+                    <div className="text-white font-bold text-sm mb-1 max-w-20 truncate">{leaders[2].name}</div>
+                    <div className="text-slate-300 text-xs mb-2">{leaders[2].xp.toLocaleString()} XP</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-slate-700/40 border-2 border-amber-900/40 flex items-center justify-center mb-2">
+                      <span className="text-slate-500 text-xs">?</span>
+                    </div>
+                    <div className="text-slate-600 text-sm mb-1">—</div>
+                    <div className="text-slate-600 text-xs mb-2">—</div>
+                  </>
+                )}
                 <div className="w-16 h-12 bg-amber-800 rounded-t-xl flex items-center justify-center"><span className="text-white font-black text-xl">3</span></div>
               </motion.div>
             </div>
-          ) : (
-            <div className="text-center text-white/40 text-sm py-4">
-              {isLoading ? 'Loading...' : 'Start learning to appear here!'}
-            </div>
           )}
+
         </div>
       </motion.div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-        {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}>
-            {t}
-          </button>
-        ))}
+      {/* Right column: Tabs + List */}
+      <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          {TABS.map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                tab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-slate-400">
+          {tab === 'Weekly' ? 'Resets every Monday' : 'All-time rankings'}
+        </span>
       </div>
 
       {/* List */}
@@ -194,23 +226,30 @@ export default function LeaderboardPage() {
           })
         )}
       </div>
+      </div> {/* end right column */}
+      </div> {/* end grid */}
 
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { icon: Users, label: 'Active Learners', value: allTimeRaw?.length ? allTimeRaw.length.toLocaleString() : '—', color: 'from-blue-500 to-indigo-600' },
-          { icon: TrendingUp, label: 'XP This Week', value: weeklyRaw?.length ? weeklyRaw.reduce((s: number, e: any) => s + (e.xp || 0), 0).toLocaleString() : '—', color: 'from-emerald-400 to-teal-500' },
-          { icon: Star, label: 'Top Level', value: allTimeLeaders[0]?.level || '—', color: 'from-amber-400 to-orange-500' },
-        ].map(({ icon: Icon, label, value, color }, i) => (
-          <motion.div key={label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.07 }}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-2 shadow-sm`}>
-              <Icon className="w-4 h-4 text-white" />
+      {/* How to climb the ranks */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-4">How to climb the ranks</p>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {[
+            { emoji: '📖', label: 'Reading', xp: '+35–55 XP' },
+            { emoji: '✍️', label: 'Writing', xp: '+30–60 XP' },
+            { emoji: '🎧', label: 'Listening', xp: '+25–65 XP' },
+            { emoji: '🎤', label: 'Speaking', xp: '+20–60 XP' },
+            { emoji: '🧠', label: 'Vocabulary', xp: '+5–15 XP' },
+            { emoji: '📚', label: 'Grammar', xp: '+20–50 XP' },
+          ].map(({ emoji, label, xp }) => (
+            <div key={label} className="flex flex-col items-center bg-slate-50 rounded-xl px-3 py-3 text-center">
+              <span className="text-2xl mb-1.5">{emoji}</span>
+              <div className="text-slate-700 text-xs font-semibold">{label}</div>
+              <div className="text-blue-600 text-xs font-bold mt-0.5">{xp}</div>
             </div>
-            <div className="text-slate-800 font-black text-lg">{value}</div>
-            <div className="text-slate-400 text-xs">{label}</div>
-          </motion.div>
-        ))}
+          ))}
+        </div>
       </div>
+
     </div>
   );
 }

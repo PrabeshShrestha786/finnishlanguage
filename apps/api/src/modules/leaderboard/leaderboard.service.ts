@@ -5,24 +5,35 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class LeaderboardService {
   constructor(private prisma: PrismaService) {}
 
-  private getCurrentWeek(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil((now.getDate() + new Date(year, now.getMonth(), 1).getDay()) / 7);
-    return `${year}-W${String(week).padStart(2, '0')}`;
+  private sevenDaysAgo(): Date {
+    return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   }
 
   async getWeeklyLeaderboard(limit = 50) {
-    const week = this.getCurrentWeek();
-    const entries = await this.prisma.leaderboardEntry.findMany({
-      where: { week },
-      include: {
-        user: { select: { username: true, firstName: true, avatar: true, currentStreak: true, finnishLevel: true } },
-      },
-      orderBy: { xp: 'desc' },
+    const since = this.sevenDaysAgo();
+
+    const grouped = await this.prisma.attempt.groupBy({
+      by: ['userId'],
+      where: { completedAt: { gte: since }, xpEarned: { gt: 0 } },
+      _sum: { xpEarned: true },
+      orderBy: { _sum: { xpEarned: 'desc' } },
       take: limit,
     });
-    return entries.map((e, i) => ({ ...e, rank: i + 1 }));
+
+    if (grouped.length === 0) return [];
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: grouped.map((g) => g.userId) } },
+      select: { id: true, username: true, firstName: true, avatar: true, currentStreak: true, finnishLevel: true },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return grouped.map((g, i) => ({
+      rank: i + 1,
+      xp: g._sum.xpEarned ?? 0,
+      user: userMap.get(g.userId) ?? null,
+    }));
   }
 
   async getAllTimeLeaderboard(limit = 50) {
@@ -37,23 +48,29 @@ export class LeaderboardService {
   }
 
   async getUserRank(userId: string) {
-    const week = this.getCurrentWeek();
-    const userEntry = await this.prisma.leaderboardEntry.findUnique({ where: { userId_week: { userId, week } } });
-    const rank = userEntry
-      ? await this.prisma.leaderboardEntry.count({ where: { week, xp: { gt: userEntry.xp } } }) + 1
-      : null;
-    const allTimeRank = await this.prisma.user.count({
-      where: { totalXP: { gt: (await this.prisma.user.findUnique({ where: { id: userId }, select: { totalXP: true } }))?.totalXP || 0 } },
-    }) + 1;
-    return { weeklyRank: rank, weeklyXP: userEntry?.xp || 0, allTimeRank };
+    const since = this.sevenDaysAgo();
+
+    const userAgg = await this.prisma.attempt.aggregate({
+      where: { userId, completedAt: { gte: since }, xpEarned: { gt: 0 } },
+      _sum: { xpEarned: true },
+    });
+    const weeklyXP = userAgg._sum.xpEarned ?? 0;
+
+    const allGroups = await this.prisma.attempt.groupBy({
+      by: ['userId'],
+      where: { completedAt: { gte: since }, xpEarned: { gt: 0 } },
+      _sum: { xpEarned: true },
+      having: { xpEarned: { _sum: { gt: weeklyXP } } },
+    });
+    const weeklyRank = weeklyXP > 0 ? allGroups.length + 1 : null;
+
+    const me = await this.prisma.user.findUnique({ where: { id: userId }, select: { totalXP: true } });
+    const allTimeRank = await this.prisma.user.count({ where: { totalXP: { gt: me?.totalXP ?? 0 } } }) + 1;
+
+    return { weeklyRank, weeklyXP, allTimeRank };
   }
 
-  async addXP(userId: string, xp: number) {
-    const week = this.getCurrentWeek();
-    return this.prisma.leaderboardEntry.upsert({
-      where: { userId_week: { userId, week } },
-      update: { xp: { increment: xp } },
-      create: { userId, week, xp },
-    });
+  async addXP(_userId: string, _xp: number) {
+    // Weekly XP is now derived directly from the attempt table (rolling 7-day window)
   }
 }

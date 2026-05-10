@@ -361,13 +361,21 @@ export default function WritingPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setTab('prompts')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'prompts' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-300'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 ${
+              tab === 'prompts'
+                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                : 'bg-white border-2 border-violet-500 text-violet-600 hover:bg-violet-50'
+            }`}
           >
             <PenTool className="w-4 h-4" /> Writing Prompts
           </button>
           <button
             onClick={() => setTab('translation')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'translation' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-violet-300'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 ${
+              tab === 'translation'
+                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                : 'bg-white border-2 border-violet-500 text-violet-600 hover:bg-violet-50'
+            }`}
           >
             <Languages className="w-4 h-4" /> Translate with AI
           </button>
@@ -613,7 +621,7 @@ export default function WritingPage() {
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
-        <button onClick={() => { setSelectedPrompt(null); setFeedback(null); }} className="text-slate-400 hover:text-slate-700 text-sm transition-colors">
+        <button onClick={() => { setSelectedPrompt(null); setFeedback(null); }} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
           ← Back
         </button>
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[selectedPrompt.level]}`}>{selectedPrompt.level}</span>

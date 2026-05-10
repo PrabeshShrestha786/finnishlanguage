@@ -637,6 +637,7 @@ export default function ReadingPage() {
       // Show story immediately (session only), then persist in background
       const sessionStory: AnyStory = { ...storyPayload, id: tempId };
       setAiStories((prev) => [sessionStory, ...prev]);
+      startStory(sessionStory);
       toast.success('Story generated! 🇫🇮', { id: toastId });
       setGenTopic('');
       // Persist to backend — swap temp id for DB id on success
@@ -818,65 +819,6 @@ export default function ReadingPage() {
       )}
 
 
-      {/* AI Generate Panel */}
-      <AnimatePresence>
-        {showGenPanel && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            className="bg-white border border-violet-200 rounded-2xl p-5 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-violet-500" />
-                <span className="font-bold text-slate-800">Generate a New Story</span>
-                <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">Powered by Groq AI</span>
-              </div>
-              <button onClick={() => setShowGenPanel(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-shrink-0">
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Level</label>
-                <div className="flex gap-1.5">
-                  {['A1', 'A2', 'B1', 'B2'].map((lvl) => (
-                    <button key={lvl} onClick={() => setGenLevel(lvl)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        genLevel === lvl ? 'bg-violet-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}>
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Topic <span className="font-normal text-slate-400">(optional)</span></label>
-                <input
-                  type="text"
-                  value={genTopic}
-                  onChange={(e) => setGenTopic(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && generateStory()}
-                  placeholder="e.g. Finnish seasons, coffee culture, Helsinki trams…"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
-                />
-              </div>
-              <div className="flex items-end">
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                  onClick={generateStory}
-                  className="btn-primary px-5 py-2 text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}
-                >
-                  <Sparkles className="w-4 h-4" /> Generate
-                </motion.button>
-              </div>
-            </div>
-            <p className="text-xs text-slate-400 mt-3">Stories are saved to your library and persist across sessions. Each AI story gives +40 XP on completion.</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence mode="wait">
 
@@ -885,11 +827,25 @@ export default function ReadingPage() {
           <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Filter + actions row */}
             <div className="flex items-center gap-2 mb-5 flex-wrap">
+              <button
+                onClick={() => setShowGenPanel(false)}
+                className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 ${
+                  !showGenPanel
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                    : 'bg-white border-2 border-cyan-500 text-cyan-600 hover:bg-cyan-50'
+                }`}>
+                <BookOpen className="w-4 h-4" /> Reading Stories
+              </button>
+
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 onClick={() => setShowGenPanel((v) => !v)}
                 disabled={generating}
-                className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+                className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-60 ${
+                  showGenPanel || generating
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                    : 'bg-white border-2 border-violet-500 text-violet-600 hover:bg-violet-50'
+                }`}
               >
                 {generating
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
@@ -897,7 +853,7 @@ export default function ReadingPage() {
               </motion.button>
               <div className="hidden md:flex items-center gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-3 py-1.5">
                 <BookOpen className="w-4 h-4 text-cyan-600" />
-                <span className="text-cyan-700 text-sm font-semibold">{STORIES.length + aiStories.length} Stories{aiStories.length > 0 ? ` · ${aiStories.length} saved` : ''}</span>
+                <span className="text-cyan-700 text-sm font-semibold">{filtered.length} Stories{aiStories.length > 0 ? ` · ${filteredAi.length} saved` : ''}</span>
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-slate-500 text-sm font-medium">Level:</span>
@@ -915,6 +871,89 @@ export default function ReadingPage() {
               </div>
             </div>
 
+            {/* Generate with AI — full two-column view */}
+            {showGenPanel && (
+              <motion.div
+                key="gen-panel"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid md:grid-cols-3 gap-5"
+              >
+                {/* Left: controls */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <h3 className="text-slate-800 font-black text-base mb-4 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-violet-500" /> Generate a Story
+                    </h3>
+
+                    {/* Level selector */}
+                    <div className="flex items-center gap-3 mb-5 flex-wrap">
+                      <span className="text-slate-700 font-semibold text-sm">Level:</span>
+                      {(['A1', 'A2', 'B1', 'B2'] as const).map((l) => (
+                        <button key={l} onClick={() => setGenLevel(l)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${genLevel === l ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Topic input */}
+                    <div className="mb-5">
+                      <label className="text-slate-600 text-sm font-semibold block mb-1.5">Topic <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <input
+                        value={genTopic}
+                        onChange={(e) => setGenTopic(e.target.value)}
+                        placeholder="e.g. shopping, weather, Finnish sauna…"
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-all"
+                      />
+                    </div>
+
+                    {/* Generate button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      onClick={generateStory} disabled={generating}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+                    >
+                      {generating
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                        : <><Sparkles className="w-4 h-4" /> Generate Story</>}
+                    </motion.button>
+
+                    {/* Note */}
+                    <p className="text-xs text-slate-400 mt-3 text-center">
+                      Stories are saved to your library and earn you <span className="text-amber-500 font-semibold">+40 XP</span> on completion.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: how it works */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                  <h3 className="text-slate-700 font-black text-sm uppercase tracking-widest mb-4">How it works</h3>
+                  <div className="space-y-4">
+                    {[
+                      { step: '1', title: 'Choose your level', desc: 'Pick A1–B2 to match your Finnish proficiency.' },
+                      { step: '2', title: 'Add a topic (optional)', desc: 'Guide the AI with a theme like "café" or "nature".' },
+                      { step: '3', title: 'Story is generated', desc: 'A unique Finnish story with vocabulary and quiz questions is created instantly.' },
+                      { step: '4', title: 'Read & earn XP', desc: 'Complete the comprehension quiz to earn XP. Your story is saved to your library.' },
+                    ].map(({ step, title, desc }) => (
+                      <div key={step} className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-0.5">
+                          {step}
+                        </div>
+                        <div>
+                          <div className="text-slate-800 text-sm font-semibold">{title}</div>
+                          <div className="text-slate-400 text-xs mt-0.5 leading-relaxed">{desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Story grid — only shown when generate panel is closed */}
+            {!showGenPanel && (
+              <>
             {aiLoading && (
               <div className="flex items-center gap-2 text-slate-400 text-sm mb-4">
                 <Loader2 className="w-4 h-4 animate-spin" /> Loading your library…
@@ -989,13 +1028,15 @@ export default function ReadingPage() {
                 );
               })}
             </div>
+              </>
+            )}
           </motion.div>
         )}
 
         {/* READING VIEW */}
         {view === 'reading' && selectedStory && (
           <motion.div key="reading" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-3xl mx-auto space-y-4">
-            <button onClick={() => { setView('list'); setWordBar(null); }} className="text-slate-400 hover:text-slate-700 text-sm flex items-center gap-1 transition-colors">
+            <button onClick={() => { setView('list'); setWordBar(null); }} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
               ← Back to stories
             </button>
 

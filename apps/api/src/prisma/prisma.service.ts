@@ -13,6 +13,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    // Keep the connection alive — prevents idle timeout crashes
+    setInterval(() => {
+      this.$queryRaw`SELECT 1`.catch(() => {});
+    }, 4 * 60 * 1000); // ping every 4 minutes
   }
 
   async onModuleDestroy() {

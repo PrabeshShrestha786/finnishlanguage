@@ -4,42 +4,26 @@ import { motion } from 'framer-motion';
 import { Trophy, Lock, Sparkles, CheckCircle2, BookOpen, Clock, Target, Zap } from 'lucide-react';
 
 const FEATURES = [
-  { icon: BookOpen, text: 'Full-length mock exams in official YKI format' },
-  { icon: Target,   text: 'A2 · B1 · B2 · C1 level tests with detailed scoring' },
-  { icon: Clock,    text: 'Timed sessions with real exam pressure simulation' },
-  { icon: Zap,      text: 'AI-powered answer analysis & personalised feedback' },
-  { icon: CheckCircle2, text: 'Progress tracking across multiple attempts' },
-  { icon: Trophy,   text: 'XP rewards and certificate-readiness score' },
+  { icon: BookOpen,      text: 'Full-length mock exams in official YKI format' },
+  { icon: Target,        text: 'A2 · B1 · B2 · C1 level tests with detailed scoring' },
+  { icon: Clock,         text: 'Timed sessions with real exam pressure simulation' },
+  { icon: Zap,           text: 'AI-powered answer analysis & personalised feedback' },
+  { icon: CheckCircle2,  text: 'Progress tracking across multiple attempts' },
+  { icon: Trophy,        text: 'XP rewards and certificate-readiness score' },
 ];
 
 export default function YkiPrepPage() {
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center max-w-2xl mx-auto px-4 py-12">
+    <div className="grid lg:grid-cols-2 gap-6 items-stretch">
 
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 mb-10 self-start"
-      >
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-sm">
-          <Trophy className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">YKI Exam Preparation</h1>
-          <p className="text-slate-500 text-sm">Official format mock tests · A2–C1 levels</p>
-        </div>
-      </motion.div>
-
-      {/* Main card */}
+      {/* Left: Gradient hero */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="w-full bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden"
+        className="rounded-3xl overflow-hidden shadow-lg flex flex-col"
       >
-        {/* Gradient hero */}
-        <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-8 pt-12 pb-16 text-center overflow-hidden">
+        <div className="relative flex-1 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-8 pt-12 pb-12 text-center overflow-hidden flex flex-col items-center justify-center">
           {/* Decorative rings */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-72 h-72 rounded-full border border-white/10" />
@@ -75,10 +59,40 @@ export default function YkiPrepPage() {
           </p>
         </div>
 
-        {/* Features list */}
-        <div className="px-8 pt-8 pb-6">
+        {/* Footer strip inside left card */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100 p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-slate-800 font-bold text-sm">Be the first to know</p>
+            <p className="text-slate-500 text-xs mt-0.5">
+              YKI Prep will be available exclusively to Premium subscribers. Stay tuned — it&apos;s almost here.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Right: Header + Features */}
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-sm">
+            <Trophy className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800">YKI Exam Preparation</h1>
+          </div>
+        </motion.div>
+
+        {/* Features */}
+        <div className="flex-1 bg-white rounded-3xl border border-slate-100 shadow-lg p-6">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">What&apos;s included in Premium</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {FEATURES.map(({ icon: Icon, text }, i) => (
               <motion.div
                 key={text}
@@ -95,20 +109,8 @@ export default function YkiPrepPage() {
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Footer strip */}
-        <div className="mx-8 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="text-slate-800 font-bold text-sm">Be the first to know</p>
-            <p className="text-slate-500 text-xs mt-0.5">
-              YKI Prep will be available exclusively to Premium subscribers. Stay tuned — it&apos;s almost here.
-            </p>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }

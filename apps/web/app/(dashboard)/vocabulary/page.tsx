@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Volume2, RotateCcw, CheckCircle2, Brain, Zap, BookOpen, Star, ChevronRight, RefreshCw, Heart, Clock, Sparkles, X, Loader2 } from 'lucide-react';
+import { Volume2, RotateCcw, CheckCircle2, Brain, Zap, BookOpen, Star, ChevronRight, RefreshCw, Heart, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -525,74 +525,120 @@ export default function VocabularyPage() {
   if (view === 'categories') {
     return (
       <div className="space-y-6">
-        {/* AI Generate button + panel */}
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowGenPanel(false)}
+            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 ${
+              !showGenPanel
+                ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md'
+                : 'bg-white border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50'
+            }`}>
+            <Brain className="w-4 h-4" /> Vocabulary
+          </button>
+
           <motion.button
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => setShowGenPanel((v) => !v)}
             disabled={generating}
-            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
-          >
-            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {generating ? 'Generating…' : 'Practice with AI'}
+            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-60 ${
+              showGenPanel || generating
+                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                : 'bg-white border-2 border-violet-500 text-violet-600 hover:bg-violet-50'
+            }`}>
+            {generating
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+              : <><Sparkles className="w-4 h-4" /> Practice with AI</>}
           </motion.button>
+
           <div className="hidden md:flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2">
             <Brain className="w-4 h-4 text-amber-600" />
             <span className="text-amber-700 text-sm font-semibold">SM-2 Algorithm</span>
           </div>
         </div>
 
-        {/* AI generation panel */}
+        {/* Practice with AI — full two-column view */}
         {showGenPanel && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid md:grid-cols-3 gap-5"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-violet-500" />
-                <span className="font-bold text-slate-800">Generate a New Practice Set</span>
-                <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold">Powered by Groq AI</span>
-              </div>
-              <button onClick={() => setShowGenPanel(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div>
-                <p className="text-xs font-semibold text-slate-500 mb-1.5">Level</p>
-                <div className="flex gap-1.5">
-                  {['A1','A2','B1','B2'].map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setGenLevel(l)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-all ${genLevel === l ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300'}`}
-                    >{l}</button>
+            {/* Left: controls */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h3 className="text-slate-800 font-black text-base mb-4 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-violet-500" /> Generate a Practice Set
+                </h3>
+
+                {/* Level selector */}
+                <div className="flex items-center gap-3 mb-5 flex-wrap">
+                  <span className="text-slate-700 font-semibold text-sm">Level:</span>
+                  {(['A1', 'A2', 'B1', 'B2'] as const).map((l) => (
+                    <button key={l} onClick={() => setGenLevel(l)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${genLevel === l ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                      {l}
+                    </button>
                   ))}
                 </div>
+
+                {/* Topic input */}
+                <div className="mb-5">
+                  <label className="text-slate-600 text-sm font-semibold block mb-1.5">Topic <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <input
+                    value={genTopic}
+                    onChange={(e) => setGenTopic(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && generateAISet()}
+                    placeholder="e.g. at the café, shopping, travel…"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-all"
+                  />
+                </div>
+
+                {/* Generate button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={generateAISet} disabled={generating}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60"
+                >
+                  {generating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                    : <><Sparkles className="w-4 h-4" /> Generate Practice Set</>}
+                </motion.button>
+
+                <p className="text-xs text-slate-400 mt-3 text-center">
+                  Earn <span className="text-amber-500 font-semibold">+2 XP</span> per correct card. Sets are not saved — generate a new one anytime.
+                </p>
               </div>
-              <div className="flex-1 min-w-[180px]">
-                <p className="text-xs font-semibold text-slate-500 mb-1.5">Topic <span className="font-normal">(optional)</span></p>
-                <input
-                  value={genTopic}
-                  onChange={(e) => setGenTopic(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && generateAISet()}
-                  placeholder="e.g. at the café, shopping, travel…"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-violet-400"
-                />
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                onClick={generateAISet}
-                className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2 rounded-xl transition-colors"
-              >
-                <Sparkles className="w-4 h-4" /> Generate
-              </motion.button>
             </div>
-            <p className="text-xs text-slate-400">Each AI set gives +2 XP per correct card. Sets are not saved — generate a new one anytime.</p>
+
+            {/* Right: how it works */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+              <h3 className="text-slate-700 font-black text-sm uppercase tracking-widest mb-4">How it works</h3>
+              <div className="space-y-4">
+                {[
+                  { step: '1', title: 'Choose your level', desc: 'Pick A1–B2 to match your current Finnish level.' },
+                  { step: '2', title: 'Add a topic (optional)', desc: 'Focus on a theme like "food" or "workplace" vocabulary.' },
+                  { step: '3', title: 'Cards are generated', desc: 'AI creates 10 Finnish–English flashcards with example sentences.' },
+                  { step: '4', title: 'Practice & earn XP', desc: 'Rate each card and earn XP for correct answers. Use SM-2 categories for scheduled review.' },
+                ].map(({ step, title, desc }) => (
+                  <div key={step} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-0.5">
+                      {step}
+                    </div>
+                    <div>
+                      <div className="text-slate-800 text-sm font-semibold">{title}</div>
+                      <div className="text-slate-400 text-xs mt-0.5 leading-relaxed">{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
         )}
 
+        {/* Stats + categories — hidden while generate panel is open */}
+        {!showGenPanel && (
+        <>
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -678,6 +724,8 @@ export default function VocabularyPage() {
             <span className="font-bold">+2 XP</span> for each correct card · SM-2 spaced repetition schedules reviews at the optimal time · Extra Practice always available
           </div>
         </div>
+        </>
+        )}
       </div>
     );
   }
@@ -692,7 +740,7 @@ export default function VocabularyPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={goBack} className="text-slate-400 hover:text-slate-700 transition-colors text-sm flex items-center gap-1">
+        <button onClick={goBack} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
           ← Back
         </button>
         <div className="flex-1 min-w-0">

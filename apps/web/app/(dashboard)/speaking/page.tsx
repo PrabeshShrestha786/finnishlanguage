@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Volume2, RefreshCw, ChevronRight, Star, CheckCircle2, Info, Loader2, Wand2, Zap, Sparkles, X } from 'lucide-react';
+import { Mic, MicOff, Volume2, RefreshCw, ChevronRight, CheckCircle2, Info, Loader2, Wand2, Zap, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -54,6 +54,7 @@ export default function SpeakingPage() {
   const [genLevel, setGenLevel] = useState<string>(user?.finnishLevel || 'A1');
   const [genTopic, setGenTopic] = useState('');
   const [setCompleted, setSetCompleted] = useState(false);
+  const [completedSet, setCompletedSet] = useState<Set<number>>(new Set());
 
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -140,6 +141,7 @@ export default function SpeakingPage() {
   const reset = () => { setState('idle'); setScore(null); };
 
   const next = () => {
+    setCompletedSet((prev) => new Set(prev).add(phraseIdx));
     const isLast = phraseIdx === phrases.length - 1;
     if (isLast) {
       setSetCompleted(true);
@@ -162,6 +164,7 @@ export default function SpeakingPage() {
       setPhrases(newPhrases);
       setPhraseIdx(0);
       setSetCompleted(false);
+      setCompletedSet(new Set());
       reset();
       toast.success(`New ${genLevel} practice set generated!`);
     } catch {
@@ -175,6 +178,7 @@ export default function SpeakingPage() {
     setPhrases(DEFAULT_PHRASES);
     setPhraseIdx(0);
     setSetCompleted(false);
+    setCompletedSet(new Set());
     reset();
   };
 
@@ -206,7 +210,7 @@ export default function SpeakingPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -281,136 +285,172 @@ export default function SpeakingPage() {
         )}
       </AnimatePresence>
 
-      {/* Progress */}
-      <div className="flex gap-2">
-        {phrases.map((_, i) => (
-          <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i < phraseIdx ? 'bg-emerald-400' : i === phraseIdx ? 'bg-finn-500' : 'bg-slate-200'}`} />
-        ))}
-      </div>
+      {/* Two-column layout */}
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
+        {/* Left: Progress + Phrase Card */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Progress */}
+          <div className="flex gap-2">
+            {phrases.map((_, i) => (
+              <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${completedSet.has(i) ? 'bg-emerald-400' : i === phraseIdx ? 'bg-finn-500' : 'bg-slate-200'}`} />
+            ))}
+          </div>
 
-      {/* Phrase Card */}
-      <motion.div key={`${phrases[0].fi}-${phraseIdx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl p-8 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
-        <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-3 py-1 rounded-full text-aurora-green text-xs font-bold mb-6">
-          {phrase.level} · Phrase {phraseIdx + 1} of {phrases.length}
-        </div>
+          {/* Phrase Card */}
+          <motion.div key={`${phrases[0].fi}-${phraseIdx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl p-6 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
+            <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-3 py-1 rounded-full text-aurora-green text-xs font-bold mb-4">
+              {phrase.level} · Phrase {phraseIdx + 1} of {phrases.length}
+            </div>
 
-        <p className="text-4xl font-black text-white mb-3">{phrase.fi}</p>
-        <p className="text-slate-400 text-lg mb-2">{phrase.en}</p>
-        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-6">
-          <Info className="w-3.5 h-3.5" />
-          <span className="font-mono">{phrase.tip}</span>
-        </div>
+            {state !== 'done' && (
+              <>
+                <p className="text-4xl font-black text-white mb-2">{phrase.fi}</p>
+                <p className="text-slate-400 text-lg mb-1">{phrase.en}</p>
+              </>
+            )}
 
-        {/* Listen Button */}
-        <button onClick={speakPhrase} disabled={loadingTTS}
-          className="inline-flex items-center gap-2 btn-secondary px-5 py-2.5 text-sm mb-8 disabled:opacity-60 disabled:cursor-not-allowed">
-          {loadingTTS
-            ? <Loader2 className="w-4 h-4 text-aurora-green animate-spin" />
-            : <Volume2 className="w-4 h-4 text-aurora-green" />}
-          Listen to pronunciation
-        </button>
-
-        {/* Recording UI */}
-        <AnimatePresence mode="wait">
-          {state === 'idle' && (
-            <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRecording}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-glow-green">
-                <Mic className="w-10 h-10 text-white" />
-              </motion.button>
-              <p className="text-slate-400 text-sm">Tap to start recording</p>
-            </motion.div>
-          )}
-
-          {state === 'recording' && (
-            <motion.div key="recording" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
-              <motion.button whileTap={{ scale: 0.95 }} onClick={stopRecording}
-                animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative">
-                {[1, 2, 3].map((i) => (
-                  <motion.div key={i} className="absolute inset-0 rounded-full border-2 border-red-500"
-                    animate={{ scale: [1, 1.5 + i * 0.3], opacity: [0.5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }} />
-                ))}
-                <MicOff className="w-10 h-10 text-white relative z-10" />
-              </motion.button>
-              <p className="text-red-400 font-semibold animate-pulse">Recording… Tap to stop</p>
-            </motion.div>
-          )}
-
-          {state === 'processing' && (
-            <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
-              <div className="w-24 h-24 rounded-full bg-finn-500/20 border-2 border-finn-500/50 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-finn-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-              <p className="text-finn-300 font-semibold">Analyzing pronunciation…</p>
-            </motion.div>
-          )}
-
-          {state === 'done' && score && (
-            <motion.div key="done" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full">
-              <div className="flex justify-center gap-8 mb-6">
-                {[
-                  { label: 'Pronunciation', score: score.pronunciationScore, color: '#00ffa3' },
-                  { label: 'Fluency', score: score.fluencyScore, color: '#9b59ff' },
-                  { label: 'Accuracy', score: score.accuracyScore, color: '#3b6ef8' },
-                ].map((s) => {
-                  const normalized = s.score <= 1 ? Math.round(s.score * 100) : Math.round(s.score);
-                  return (
-                    <div key={s.label} className="flex flex-col items-center gap-2">
-                      <CircularProgress score={normalized} color={s.color} />
-                      <span className="text-slate-400 text-xs font-medium">{s.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="bg-white/10 rounded-2xl p-4 text-left mb-4 border border-white/20">
-                <p className="text-slate-200 text-sm leading-relaxed">{score.feedback}</p>
-              </div>
-
-              {score.improvements?.length > 0 && (
-                <div className="space-y-2 mb-5 text-left">
-                  {score.improvements.map((tip: string) => (
-                    <div key={tip} className="flex items-center gap-2 text-sm text-slate-400">
-                      <ChevronRight className="w-3.5 h-3.5 text-aurora-yellow flex-shrink-0" />
-                      {tip}
-                    </div>
-                  ))}
+            {state !== 'done' && (
+              <>
+                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-4">
+                  <Info className="w-3.5 h-3.5" />
+                  <span className="font-mono">{phrase.tip}</span>
                 </div>
+
+                {/* Listen Button */}
+                <button onClick={speakPhrase} disabled={loadingTTS}
+                  className="inline-flex items-center gap-2 btn-secondary px-5 py-2.5 text-sm mb-6 disabled:opacity-60 disabled:cursor-not-allowed">
+                  {loadingTTS
+                    ? <Loader2 className="w-4 h-4 text-aurora-green animate-spin" />
+                    : <Volume2 className="w-4 h-4 text-aurora-green" />}
+                  Listen to pronunciation
+                </button>
+              </>
+            )}
+
+            {/* Recording UI */}
+            <AnimatePresence mode="wait">
+              {state === 'idle' && (
+                <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRecording}
+                    className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-glow-green">
+                    <Mic className="w-10 h-10 text-white" />
+                  </motion.button>
+                  <p className="text-slate-400 text-sm">Tap to start recording</p>
+                </motion.div>
               )}
 
-              <div className="flex gap-3">
-                <button onClick={reset} className="btn-secondary flex-1 py-3 flex items-center justify-center gap-2 text-sm">
-                  <RefreshCw className="w-4 h-4" /> Try Again
-                </button>
-                <button onClick={next} className="btn-aurora flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold text-nordic-dark">
-                  {phraseIdx === phrases.length - 1 ? 'Finish Set' : 'Next Phrase'} <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+              {state === 'recording' && (
+                <motion.div key="recording" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={stopRecording}
+                    animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                    className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative">
+                    {[1, 2, 3].map((i) => (
+                      <motion.div key={i} className="absolute inset-0 rounded-full border-2 border-red-500"
+                        animate={{ scale: [1, 1.5 + i * 0.3], opacity: [0.5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }} />
+                    ))}
+                    <MicOff className="w-10 h-10 text-white relative z-10" />
+                  </motion.button>
+                  <p className="text-red-400 font-semibold animate-pulse">Recording… Tap to stop</p>
+                </motion.div>
+              )}
 
-      {/* Tips */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <h3 className="text-slate-800 font-bold mb-3 flex items-center gap-2">
-          <Star className="w-4 h-4 text-amber-400" /> Finnish Pronunciation Tips
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { tip: 'Vowels are pure — A sounds like "ah", never "ay"' },
-            { tip: 'Double letters are held twice as long: "ss", "tt"' },
-            { tip: 'Stress is always on the FIRST syllable' },
-            { tip: '"Y" is a vowel, sounds like German "ü"' },
-          ].map((t) => (
-            <div key={t.tip} className="flex items-start gap-2 text-xs text-slate-600">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
-              {t.tip}
+              {state === 'processing' && (
+                <motion.div key="processing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
+                  <div className="w-24 h-24 rounded-full bg-finn-500/20 border-2 border-finn-500/50 flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-finn-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                  <p className="text-finn-300 font-semibold">Analyzing pronunciation…</p>
+                </motion.div>
+              )}
+
+              {state === 'done' && score && (
+                <motion.div key="done" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                  <div className="flex justify-center gap-8 mb-6">
+                    {[
+                      { label: 'Pronunciation', score: score.pronunciationScore, color: '#00ffa3' },
+                      { label: 'Fluency', score: score.fluencyScore, color: '#9b59ff' },
+                      { label: 'Accuracy', score: score.accuracyScore, color: '#3b6ef8' },
+                    ].map((s) => {
+                      const normalized = s.score <= 1 ? Math.round(s.score * 100) : Math.round(s.score);
+                      return (
+                        <div key={s.label} className="flex flex-col items-center gap-2">
+                          <CircularProgress score={normalized} color={s.color} />
+                          <span className="text-slate-400 text-xs font-medium">{s.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="bg-white/10 rounded-2xl p-4 text-left mb-4 border border-white/20">
+                    <p className="text-slate-200 text-sm leading-relaxed">{score.feedback}</p>
+                  </div>
+
+                  {score.improvements?.length > 0 && (
+                    <div className="space-y-2 mb-5 text-left">
+                      {score.improvements.map((tip: string) => (
+                        <div key={tip} className="flex items-center gap-2 text-sm text-slate-400">
+                          <ChevronRight className="w-3.5 h-3.5 text-aurora-yellow flex-shrink-0" />
+                          {tip}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button onClick={reset} className="btn-secondary flex-1 py-3 flex items-center justify-center gap-2 text-sm">
+                      <RefreshCw className="w-4 h-4" /> Try Again
+                    </button>
+                    <button onClick={next} className="btn-aurora flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold text-nordic-dark">
+                      {phraseIdx === phrases.length - 1 ? 'Finish Set' : 'Next Phrase'} <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+
+        {/* Right: Tips + Phrase List */}
+        <div className="space-y-4">
+          {/* Phrase List */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 className="text-slate-800 font-bold mb-3 flex items-center gap-2">
+              <Mic className="w-4 h-4 text-emerald-500" /> Practice Set
+            </h3>
+            <div className="space-y-1.5">
+              {phrases.map((p, i) => (
+                <div key={i} onClick={() => { setPhraseIdx(i); reset(); }}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
+                  i === phraseIdx ? 'bg-emerald-50 border border-emerald-100' : 'hover:bg-slate-50'
+                }`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    completedSet.has(i) ? 'bg-emerald-100' : i === phraseIdx ? 'bg-emerald-500' : 'bg-slate-100'
+                  }`}>
+                    {completedSet.has(i)
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      : i === phraseIdx
+                        ? <Mic className="w-3 h-3 text-white" />
+                        : <span className="text-xs text-slate-400 font-semibold">{i + 1}</span>
+                    }
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-xs font-semibold truncate ${
+                      i === phraseIdx ? 'text-emerald-700' : completedSet.has(i) ? 'text-slate-400 line-through' : 'text-slate-700'
+                    }`}>{p.fi}</div>
+                    <div className="text-xs text-slate-400 truncate">{p.en}</div>
+                  </div>
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                    p.level === 'A1' ? 'bg-green-100 text-green-700' :
+                    p.level === 'A2' ? 'bg-blue-100 text-blue-700' :
+                    p.level === 'B1' ? 'bg-purple-100 text-purple-700' :
+                    'bg-orange-100 text-orange-700'
+                  }`}>{p.level}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

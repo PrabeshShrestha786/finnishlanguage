@@ -876,12 +876,22 @@ Respond ONLY with valid JSON:
       messages: [
         {
           role: 'system',
-          content: `Generate ${count} Finnish language exercises. Topic: "${topic}", CEFR Level: ${level}, Type: ${type}.
+          content: `Generate ${count} multiple-choice exercises about Finnish grammar for English-speaking learners.
+Topic: "${topic}" | CEFR Level: ${level}
+
+STRICT RULES — violating any rule makes the exercise unusable:
+1. EXACTLY ONE option must be correct. Before writing each exercise, verify that ONLY the correctAnswer is right and every other option is clearly wrong.
+2. Do NOT ask "which word follows rule X" if multiple options could follow it. Instead ask "which word VIOLATES rule X" or use fill-in-the-blank with one correct form.
+3. Distractors must be WRONG — not just less likely, but incorrect. For vowel harmony questions use words that mix front+back vowels as distractors.
+4. All questions, options, explanations and hints MUST be written in English. Finnish words/sentences may appear only as examples.
+5. The "explanation" must say WHY the correct answer is right AND why the selected wrong answer is wrong (mention both).
+6. No duplicate options. No repeated answer values across the 4 choices.
+
 Respond ONLY with valid JSON: { "exercises": [{"question":"","options":[],"correctAnswer":"","explanation":"","hint":"","points":10}] }`,
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8,
+      temperature: 0.4,
     });
     const result = JSON.parse(completion.choices[0].message.content || '{"exercises":[]}');
     return result.exercises || [];
