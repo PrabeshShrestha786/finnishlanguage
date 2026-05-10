@@ -89,7 +89,15 @@ export class VocabularyService {
     });
 
     if (quality >= 3) {
-      await this.prisma.user.update({ where: { id: userId }, data: { totalXP: { increment: 2 } } });
+      await Promise.all([
+        this.prisma.user.update({
+          where: { id: userId },
+          data: { totalXP: { increment: 2 }, lastActiveAt: new Date() },
+        }),
+        this.prisma.attempt.create({
+          data: { userId, answer: { source: 'vocabulary' }, isCorrect: true, score: 2, xpEarned: 2 },
+        }),
+      ]);
     }
 
     return { progress, nextReview, interval };
