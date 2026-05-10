@@ -31,15 +31,7 @@ export default function Sidebar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
-  const effectiveStreak = (() => {
-    if (!user?.currentStreak || !user?.lastActiveAt) return 0;
-    const lastActive = new Date(user.lastActiveAt);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-    lastActive.setHours(0, 0, 0, 0);
-    return lastActive >= yesterday ? user.currentStreak : 0;
-  })();
+  const effectiveStreak = user?.currentStreak || 0;
 
   return (
     <motion.aside
