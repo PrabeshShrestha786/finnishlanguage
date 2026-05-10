@@ -541,7 +541,7 @@ export default function ListeningPage() {
         {/* PLAYER VIEW */}
         {view === 'player' && selectedTrack && !quizMode && (
           <motion.div key="player" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-2xl mx-auto space-y-4">
-            <button onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setView('list'); }} className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm">
+            <button onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setView('list'); }} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all">
               ← Back to tracks
             </button>
 

@@ -60,12 +60,23 @@ function useTypewriter(text: string, speed = 28) {
 }
 
 function LoadingScreen() {
-  const [fact, setFact] = useState(FINNISH_FACTS[0]);
+  const [facts, setFacts] = useState(FINNISH_FACTS);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    setFact(FINNISH_FACTS[Math.floor(Math.random() * FINNISH_FACTS.length)]);
+    setFacts([...FINNISH_FACTS].sort(() => Math.random() - 0.5));
   }, []);
+
+  const fact = facts[index];
   const typed = useTypewriter(fact.text);
+
+  useEffect(() => {
+    if (typed.length < fact.text.length) return;
+    const timer = setTimeout(() => {
+      setIndex(i => (i + 1) % facts.length);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [typed, fact.text, facts.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center px-4">
