@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 const CATEGORIES = [
   { id: 'all',          label: 'All Words',  emoji: '📚' },
-  { id: 'Favorites',    label: 'Favorites',  emoji: '❤️' },
+  { id: 'Favorites',    label: 'Your Favorites',  emoji: '❤️' },
   { id: 'Greetings',    label: 'Greetings',  emoji: '👋' },
   { id: 'Food & Drink', label: 'Food',       emoji: '🍽️' },
   { id: 'Travel',       label: 'Travel',     emoji: '✈️' },
@@ -20,6 +20,30 @@ const CATEGORIES = [
   { id: 'Numbers',      label: 'Numbers',    emoji: '🔢' },
   { id: 'Colors',       label: 'Colors',     emoji: '🎨' },
   { id: 'Verbs',        label: 'Verbs',      emoji: '⚡' },
+  { id: 'Home',         label: 'Home',       emoji: '🏠' },
+  { id: 'Shopping',     label: 'Shopping',   emoji: '🛒' },
+  { id: 'Transportation', label: 'Transportation', emoji: '🚗' },
+  { id: 'School',       label: 'School',     emoji: '🏫' },
+  { id: 'Health',       label: 'Health',     emoji: '🏥' },
+  { id: 'Money',        label: 'Money & Banking', emoji: '💰' },
+  { id: 'Time',         label: 'Time & Dates', emoji: '📅' },
+  { id: 'Weather',      label: 'Weather',    emoji: '🌦️' },
+  { id: 'Household',    label: 'Household',  emoji: '🧹' },
+  { id: 'Clothes',      label: 'Clothes',    emoji: '👕' },
+  { id: 'Phrases',      label: 'Common Phrases', emoji: '💬' },
+  { id: 'Questions',    label: 'Questions',  emoji: '❓' },
+  { id: 'Emotions',     label: 'Emotions',   emoji: '😊' },
+  { id: 'Conversations', label: 'Conversations', emoji: '🗣️' },
+  { id: 'Phone',        label: 'Phone Calls', emoji: '📞' },
+  { id: 'Government',   label: 'Kela & Government', emoji: '🧾' },
+  { id: 'Winter',       label: 'Winter',     emoji: '🧊' },
+  { id: 'Sauna',        label: 'Sauna',      emoji: '🧖' },
+  { id: 'IT',           label: 'Networking & IT', emoji: '🔧' },
+  { id: 'Tools',        label: 'Tools & Equipment', emoji: '🧰' },
+  { id: 'Interview',    label: 'Interview',  emoji: '📄' },
+  
+
+  
 ];
 
 const RATINGS = [

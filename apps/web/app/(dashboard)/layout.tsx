@@ -60,7 +60,11 @@ function useTypewriter(text: string, speed = 28) {
 }
 
 function LoadingScreen() {
-  const [fact] = useState(() => FINNISH_FACTS[Math.floor(Math.random() * FINNISH_FACTS.length)]);
+  const [fact, setFact] = useState(FINNISH_FACTS[0]);
+
+  useEffect(() => {
+    setFact(FINNISH_FACTS[Math.floor(Math.random() * FINNISH_FACTS.length)]);
+  }, []);
   const typed = useTypewriter(fact.text);
 
   return (
