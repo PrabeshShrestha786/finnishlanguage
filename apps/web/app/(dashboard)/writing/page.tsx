@@ -177,6 +177,183 @@ const PROMPTS = [
     example: 'Mielenterveys on yksi aikamme keskeisimmistä kansanterveysongelmista, mutta siitä puhuminen on yhä monille vaikeaa. Tutkimusten mukaan joka viides suomalainen kärsii jonkinasteisesta mielenterveyden häiriöstä vuoden aikana.\n\nHäpeä ja ennakkoluulot ovat merkittävimpiä esteitä avun hakemiselle. Monet pelkäävät leimautumista tai epäilevät omien oireidensa vakavuutta.\n\nYhteiskunnan tulisi panostaa enemmän mielenterveyspalveluihin ja edistää avointa keskustelukulttuuria kouluissa ja työpaikoilla.',
   },
   {
+  id: 18,
+  title: 'My Home',
+  titleFi: 'Kotini',
+  level: 'A1',
+  xp: 35,
+  color: 'from-amber-400 to-yellow-500',
+  description: 'Write a few sentences describing your home.',
+  hints: [
+    'Start with: "Asun..." (I live in...)',
+    'Describe your home: "Minulla on..." (I have a...)',
+    'Mention rooms: "Kodissani on..." (In my home there is...)',
+    'Say what you like: "Pidän siitä, koska..." (I like it because...)'
+  ],
+  example: 'Asun kerrostalossa Helsingin keskustassa. Minulla on pieni kaksio. Kodissani on olohuone, makuuhuone ja keittiö. Pidän kodistani, koska se on valoisa ja mukava.',
+},
+{
+  id: 19,
+  title: 'What I Wear',
+  titleFi: 'Mitä minulla on päällä',
+  level: 'A1',
+  xp: 30,
+  color: 'from-red-400 to-pink-500',
+  description: 'Describe what you are wearing today or what you like to wear.',
+  hints: [
+    'Start with: "Tänään minulla on päällä..." (Today I am wearing...)',
+    'Name clothing items: "paita" (shirt), "housut" (trousers), "kengät" (shoes)',
+    'Mention colours: "sininen" (blue), "musta" (black), "punainen" (red)',
+    'Say what you like: "Pidän..." (I like...)'
+  ],
+  example: 'Tänään minulla on päällä sininen paita ja mustat housut. Minulla on myös valkoiset kengät. Pidän mukavista vaatteista. Talvella käytän usein villapaitaa ja lämmintä takkia.',
+},
+{
+  id: 20,
+  title: 'My Hobbies',
+  titleFi: 'Harrastukseni',
+  level: 'A1',
+  xp: 35,
+  color: 'from-orange-400 to-red-500',
+  description: 'Write about one or two hobbies you enjoy.',
+  hints: [
+    'Start with: "Harrastan..." (My hobby is... / I do...)',
+    'Say how often: "Kerran viikossa" (once a week), "Joka päivä" (every day)',
+    'Say where: "Kotona" (at home), "Puistossa" (in the park)',
+    'Say why: "Se on hauskaa" (It is fun), "Se on rentouttavaa" (It is relaxing)'
+  ],
+  example: 'Harrastan uintia ja piirtämistä. Käyn uimassa kaksi kertaa viikossa uimahallissa. Piirrän kotona melkein joka päivä. Uinti on hyvää liikuntaa ja piirtäminen on rentouttavaa.',
+},
+{
+  id: 21,
+  title: 'My Morning',
+  titleFi: 'Aamuni',
+  level: 'A1',
+  xp: 30,
+  color: 'from-blue-400 to-cyan-500',
+  description: 'Describe what you do in the morning before you leave home.',
+  hints: [
+    'Start with: "Herään kello..." (I wake up at...)',
+    'Use morning verbs: "pesen hampaat" (brush teeth), "syön aamiaista" (eat breakfast)',
+    'Say what you drink: "Juon..." (I drink...)',
+    'End with: "Sitten lähden..." (Then I leave...)'
+  ],
+  example: 'Herään kello puoli kahdeksan. Ensin pesen hampaat ja kasvot. Sitten syön aamiaista — yleensä leipää ja jogurttia. Juon kahvia. Lähden kotoa kello kahdeksan.',
+},
+{
+  id: 22,
+  title: 'My Favourite Season',
+  titleFi: 'Lempivuodenaikani',
+  level: 'A1',
+  xp: 30,
+  color: 'from-green-400 to-lime-500',
+  description: 'Write about your favourite season and what you like to do then.',
+  hints: [
+    'Start with: "Lempivuodenaikani on..." (My favourite season is...)',
+    'Describe the weather: "Sää on..." (The weather is...)',
+    'Say what you do: "Tykkään..." (I like to...)',
+    'End with a feeling: "Se on ihanaa!" (It is wonderful!)'
+  ],
+  example: 'Lempivuodenaikani on kesä. Sää on lämmin ja aurinkoinen. Tykkään uida järvessä ja syödä jäätelöä ulkona. Kesällä on paljon valoa ja luonto on kaunis. Se on ihanaa!',
+},
+{
+  id: 23,
+  title: 'My Last Holiday',
+  titleFi: 'Viime lomani',
+  level: 'A2',
+  xp: 55,
+  color: 'from-rose-400 to-pink-500',
+  description: 'Write about a holiday or trip you took recently.',
+  hints: [
+    'Start with: "Viime kesänä/talvena matkustin..." (Last summer/winter I travelled to...)',
+    'Say who with: "Matkustin ___ kanssa" (I travelled with...)',
+    'Describe what you did: "Kävimme..." (We visited...), "Näimme..." (We saw...)',
+    'End with your opinion: "Se oli..." (It was...)'
+  ],
+  example: 'Viime kesänä matkustin Kreikkaan ystäväni kanssa. Olimme siellä viikon. Sää oli kuuma ja aurinkoinen joka päivä. Käimme rannalla ja uimme meressä. Söimme paljon hyvää ruokaa, kuten salaattia ja tuoretta kalaa. Se oli rentouttava loma!',
+},
+{
+  id: 24,
+  title: 'A Memorable Meal',
+  titleFi: 'Ikimuistoinen ateria',
+  level: 'A2',
+  xp: 50,
+  color: 'from-orange-400 to-amber-500',
+  description: 'Describe a meal that you remember well — it can be at a restaurant, at home, or during a celebration.',
+  hints: [
+    'Set the scene: "Kerran söin..." (Once I ate...), "Juhlimme..." (We were celebrating...)',
+    'Describe the food: "Ruoka oli..." (The food was...), "Tilasin..." (I ordered...)',
+    'Mention the atmosphere: "Tunnelma oli..." (The atmosphere was...)',
+    'Why memorable?: "Se oli erityistä, koska..." (It was special because...)'
+  ],
+  example: 'Juhlimme isoäitini syntymäpäivää ravintolassa viime kuussa. Tilasin lohikeittoa ja suklaakakkua jälkiruoaksi. Ruoka oli todella herkullista. Tunnelma oli lämmin ja kaikki nauroivat paljon. Se oli erityistä, koska koko perhe oli yhdessä pitkästä aikaa.',
+},
+{
+  id: 25,
+  title: 'Shopping Trip',
+  titleFi: 'Ostoksilla',
+  level: 'A2',
+  xp: 50,
+  color: 'from-purple-400 to-indigo-500',
+  description: 'Write about a recent shopping trip — what you bought and where you went.',
+  hints: [
+    'Start: "Kävin eilen/viime viikolla ostoksilla..." (I went shopping yesterday/last week...)',
+    'Where?: "Menin..." (I went to...), "kauppakeskukseen" (shopping centre), "torille" (market)',
+    'What you bought: "Ostin..." (I bought...), "Löysin..." (I found...)',
+    'Prices or feelings: "Se maksoi..." (It cost...), "Olin tyytyväinen..." (I was happy with...)'
+  ],
+  example: 'Kävin eilen ostoksilla kauppakeskuksessa ystäväni kanssa. Tarvitsin uudet talvikengät. Löysin mustat kengät alennuksesta ja ne maksoivat vain viisikymmentä euroa. Ostin myös villapaidan ja kahvia kahvilasta. Olin tosi tyytyväinen löytöihini.',
+},
+{
+  id: 26,
+  title: 'My Daily Commute',
+  titleFi: 'Työmatkani',
+  level: 'A2',
+  xp: 50,
+  color: 'from-teal-400 to-cyan-500',
+  description: 'Describe how you get to work, school, or university.',
+  hints: [
+    'Start: "Menen töihin/kouluun..." (I go to work/school...)',
+    'Transport: "bussilla" (by bus), "pyörällä" (by bike), "autolla" (by car), "kävellen" (on foot)',
+    'Duration: "Matka kestää..." (The journey takes...), "noin puoli tuntia" (about half an hour)',
+    'What you do during: "Matkalla minä..." (During the journey I...)'
+  ],
+  example: 'Menen töihin bussilla. Matka kestää noin kaksikymmentäviisi minuuttia. Odotan bussia pysäkillä lähellä kotiani. Matkalla kuuntelen yleensä musiikkia tai podcasteja. Joskus luen kirjaa. Paluumatkalla bussi on usein täynnä ihmisiä.',
+},
+{
+  id: 27,
+  title: 'A Film I Saw',
+  titleFi: 'Elokuva jonka katsoin',
+  level: 'A2',
+  xp: 50,
+  color: 'from-indigo-400 to-blue-500',
+  description: 'Write a short review of a film you watched recently.',
+  hints: [
+    'Start: "Katsoin äskettäin elokuvan..." (I recently watched a film called...)',
+    'Genre and actors: "Se on..." (It is a...), "Pääosassa on..." (Starring...)',
+    'What happens?: "Elokuva kertoo..." (The film is about...)',
+    'Your opinion: "Pidin siitä, koska..." (I liked it because...), "Se oli tylsä..." (It was boring...)'
+  ],
+  example: 'Katsoin äskettäin elokuvan, jonka nimi on "The Holdovers". Se on komedia-draama. Pääosassa on Paul Giamatti. Elokuva kertoo opettajasta ja oppilaasta, jotka viettävät joulua yhdessä koulussa. Pidin siitä paljon, koska se oli hauska ja liikuttava samaan aikaan.',
+},
+{
+  id: 28,
+  title: 'Inviting a Friend',
+  titleFi: 'Kutsu ystävälle',
+  level: 'A2',
+  xp: 45,
+  color: 'from-green-400 to-teal-500',
+  description: 'Write a short message or email to invite a friend to do something together.',
+  hints: [
+    'Greeting: "Hei [nimi]!" (Hi [name]!)',
+    'The invitation: "Haluaisitko...?" (Would you like to...?), "Mennäänkö...?" (Shall we go...?)',
+    'Suggest time and place: "Tavataan..." (Let us meet...), "kello..." (at... o\'clock)',
+    'End: "Kerro, sopiiko sinulle!" (Let me know if it works for you!), "Nähdään pian!" (See you soon!)'
+  ],
+  example: 'Hei Kaisa!\n\nHaluaisitko mennä kanssani elokuviin lauantaina? Teatterissa menee uusi suomalainen komedia. Tavataan vaikka kello neljä keskustassa. Elokuvan jälkeen voimme mennä kahville.\n\nKerro, sopiiko sinulle!\n\nTerveisin,\nMaria',
+},
+
+  {
     id: 16,
     title: 'Remote Work and Society',
     titleFi: 'Etätyö ja yhteiskunta',
@@ -187,6 +364,215 @@ const PROMPTS = [
     hints: ['Context: "Etätyö on yleistynyt..." (Remote work has become common...)', 'Benefits: "Etätyö tarjoaa..." (Remote work offers...)', 'Drawbacks: "Toisaalta sosiaalinen eristäytyminen..." (On the other hand, social isolation...)', 'Future outlook: "Tulevaisuudessa työ..." (In the future, work...)'],
     example: 'Etätyö on yleistynyt merkittävästi viime vuosien aikana ja muuttanut sekä työkulttuuriamme että sosiaalista elämäämme. Mahdollisuus työskennellä kotoa tarjoaa joustavuutta ja säästää pendlausaikaa.\n\nToisaalta sosiaalinen eristäytyminen ja työn ja vapaa-ajan rajojen hämärtyminen ovat etätyön tunnettuja haittapuolia. Monet kokevat, että spontaanit kohtaamiset kollegoiden kanssa jäävät puuttumaan.\n\nTulevaisuudessa työ tulee todennäköisesti olemaan hybridimalli, jossa etä- ja lähityö vuorottelevat.',
   },
+  {
+  id: 17,
+  title: 'My Family',
+  titleFi: 'Perheeni',
+  level: 'A1',
+  xp: 35,
+  color: 'from-yellow-400 to-orange-500',
+  description: 'Write 3–5 sentences about your family in Finnish.',
+  hints: [
+    'Start with: "Perheeseeni kuuluu..." (My family includes...)',
+    'Name a family member: "Minulla on..." (I have a...)',
+    'Describe someone: "Hän on..." (He/She is...)',
+    'Say something you do together: "Me... yhdessä" (We... together)'
+  ],
+  example: 'Perheeseeni kuuluu äiti, isä ja pikkuveli. Minulla on myös koira. Äitini on opettaja ja isäni on insinööri. Vietämme paljon aikaa yhdessä, esimerkiksi pelaamme lautapelejä ja käymme kävelyillä.',
+},
+
+{
+  id: 29,
+  title: 'A Memorable Journey',
+  titleFi: 'Mieleenpainuva matka',
+  level: 'B1',
+  xp: 90,
+  color: 'from-sky-400 to-indigo-500',
+  description: 'Write about a journey that was special to you — it can be positive, challenging, or life-changing.',
+  hints: [
+    'Start: "Yksi mieleenpainuvimmista matkoistani oli..." (One of my most memorable journeys was...)',
+    'Describe the experience: "Matkan aikana..." (During the journey...), "Koin..." (I experienced...)',
+    'A challenge or surprise: "Yllättävää oli..." (Surprising was...), "Vaikeinta oli..." (The hardest part was...)',
+    'Reflection: "Tämä matka opetti minulle..." (This journey taught me...), "Jälkeenpäin ajateltuna..." (In hindsight...)'
+  ],
+  example: 'Yksi mieleenpainuvimmista matkoistani oli vaellus Lapissa muutama vuosi sitten. Matkan aikana kävelimme päivittäin noin 15 kilometriä ja nukuimme teltassa. Vaikeinta oli rankka maasto ja märät kengät, mutta maisemat olivat henkeäsalpaavat. Näimme revontulia kahtena iltana. Tämä matka opetti minulle, että olen vahvempi kuin luulen. Jälkeenpäin ajateltuna se oli elämäni paras loma.',
+},
+{
+  id: 30,
+  title: 'Work-Life Balance',
+  titleFi: 'Työn ja vapaa-ajan tasapaino',
+  level: 'B1',
+  xp: 85,
+  color: 'from-violet-400 to-purple-500',
+  description: 'Write about how you balance work or studies with your personal life and what challenges you face.',
+  hints: [
+    'Start: "Työn ja vapaa-ajan tasapaino on..." (Work-life balance is...)',
+    'Your situation: "Omassa elämässäni..." (In my own life...), "Yritän..." (I try to...)',
+    'Challenges: "Haastavaa on..." (What is challenging is...), "Joskus tunnen..." (Sometimes I feel...)',
+    'Solutions: "Olen huomannut, että..." (I have noticed that...), "Auttaa, kun..." (It helps when...)'
+  ],
+  example: 'Työn ja vapaa-ajan tasapaino on tärkeä aihe nyky-yhteiskunnassa. Omassa elämässäni yritän pitää kiinni siitä, etten tee töitä iltaisin tai viikonloppuisin. Haastavaa on kuitenkin se, että älypuhelin on aina taskussa ja työsähköpostit tulevat helposti luettua. Olen huomannut, että auttaa, kun laitan puhelimen äänettömälle kello kuuden jälkeen ja käyn säännöllisesti ulkoilemassa. Tasapaino ei ole täydellinen, mutta se on parempi kuin ennen.',
+},
+{
+  id: 31,
+  title: 'A Book That Influenced Me',
+  titleFi: 'Kirja joka vaikutti minuun',
+  level: 'B1',
+  xp: 85,
+  color: 'from-emerald-400 to-green-500',
+  description: 'Write about a book that changed your thinking or touched you deeply.',
+  hints: [
+    'Introduce the book: "Yksi tärkeimmistä kirjoista, jonka olen lukenut, on..." (One of the most important books I have read is...)',
+    'Summary: "Kirja kertoo..." (The book tells about...), "Teemat käsittelevät..." (The themes deal with...)',
+    'Personal impact: "Tämä kirja sai minut ajattelemaan..." (This book made me think...), "Se vaikutti minuun, koska..." (It influenced me because...)',
+    'Recommendation: "Suosittelen tätä kirjaa..." (I recommend this book...), "erityisesti niille, jotka..." (especially to those who...)'
+  ],
+  example: 'Yksi tärkeimmistä kirjoista, jonka olen lukenut, on Sofi Oksasen "Puhdistus". Kirja kertoo kahden naisen elämästä Virossa eri aikakausina. Teemat käsittelevät historiaa, selviytymistä ja salaisuuksia. Tämä kirja sai minut ajattelemaan, miten menneisyyden tapahtumat vaikuttavat sukupolvien ajan. Suosittelen tätä kirjaa erityisesti niille, jotka ovat kiinnostuneita historiasta ja ihmissuhteista.',
+},
+{
+  id: 32,
+  title: 'Advice for Language Learners',
+  titleFi: 'Neuvoja kielenoppijoille',
+  level: 'B1',
+  xp: 90,
+  color: 'from-amber-400 to-orange-500',
+  description: 'Write a short article giving practical advice to someone learning Finnish or another new language.',
+  hints: [
+    'Introduction: "Uuden kielen oppiminen on..." (Learning a new language is...)',
+    'Tip 1: "Ensinnäkin suosittelen..." (Firstly, I recommend...)',
+    'Tip 2: "Toinen tärkeä neuvo on..." (A second important piece of advice is...)',
+    'Encouragement: "Muista, että..." (Remember that...), "Virheet kuuluvat..." (Mistakes are part of...)'
+  ],
+  example: 'Uuden kielen oppiminen on innostavaa mutta myös haastavaa. Haluan jakaa muutaman neuvon, jotka ovat auttaneet minua. Ensinnäkin suosittelen puhumaan mahdollisimman paljon, vaikka tekisi virheitä. Virheet kuuluvat oppimisprosessiin. Toinen tärkeä neuvo on katsoa elokuvia ja kuunnella musiikkia kohdekielellä — se auttaa kuullun ymmärtämisessä. Lopuksi muista, että edistyminen vie aikaa. Jokainen pieni askel vie sinut lähemmäs tavoitetta!',
+},
+{
+  id: 33,
+  title: 'Local Traditions',
+  titleFi: 'Paikalliset perinteet',
+  level: 'B1',
+  xp: 85,
+  color: 'from-rose-400 to-red-500',
+  description: 'Describe a tradition or festival from your home country or region.',
+  hints: [
+    'Name and time: "Tärkeä perinne kotimaassani on..." (An important tradition in my home country is...)',
+    'What happens?: "Tämän juhlan aikana..." (During this celebration...), "Ihmiset..." (People...)',
+    'Food and customs: "Perinteiseen ruokaan kuuluu..." (Traditional food includes...), "On tapana..." (It is customary to...)',
+    'Your feelings: "Tämä perinne on minulle tärkeä, koska..." (This tradition is important to me because...)'
+  ],
+  example: 'Tärkeä perinne kotimaassani on juhannus. Sitä vietetään kesäkuun lopussa, kun yö on lyhin. Tämän juhlan aikana ihmiset matkustavat mökeilleen maaseudulle. Sytytämme kokon ja käymme saunassa. Perinteiseen ruokaan kuuluu uusia perunoita, silliä ja mansikoita. On tapana viettää aikaa perheen ja ystävien kanssa luonnossa. Tämä perinne on minulle tärkeä, koska se yhdistää ihmisiä ja juhlistaa kesän alkua.',
+},
+{
+  id: 34,
+  title: 'Should Everyone Learn to Cook?',
+  titleFi: 'Pitäisikö kaikkien osata kokata?',
+  level: 'B1',
+  xp: 90,
+  color: 'from-blue-400 to-violet-500',
+  description: 'Write a short opinion piece on whether cooking is an essential life skill.',
+  hints: [
+    'Your stance: "Minusta on selvää, että..." (In my opinion it is clear that...), "Mielestäni..." (I think that...)',
+    'Arguments for: "Ruoanlaitto on tärkeä taito, koska..." (Cooking is an important skill because...)',
+    'Counterpoint: "Jotkut sanovat, että..." (Some say that...), "mutta..." (but...)',
+    'Conclusion: "Kaiken kaikkiaan..." (All in all...), "Uskon vahvasti, että..." (I strongly believe that...)'
+  ],
+  example: 'Minusta on selvää, että ruoanlaitto on yksi tärkeimmistä elämäntaidoista, jonka jokainen voi oppia. Ensinnäkin itse tekemä ruoka on yleensä terveellisempää ja edullisempaa kuin valmisruoka tai ravintolaruoka. Lisäksi ruoanlaitto on luovaa toimintaa, joka voi olla hauskaa. Jotkut sanovat, että nykyään voi tilata ruokaa helposti kotiin, mutta mielestäni se ei korvaa oman ruoan tekemisen iloa. Kaiken kaikkiaan uskon vahvasti, että ruoanlaiton perusteet pitäisi opettaa kaikille koulussa.',
+},
+{
+  id: 35,
+  title: 'Urban vs. Rural Living',
+  titleFi: 'Kaupunki vs. maaseutu',
+  level: 'B2',
+  xp: 115,
+  color: 'from-slate-500 to-gray-600',
+  description: 'Write a balanced essay comparing life in a city with life in the countryside. Argue which environment you prefer and why.',
+  hints: [
+    'Introduction: "Keskustelu kaupunki- ja maaseutuelämän välillä on..." (The debate between urban and rural living is...)',
+    'City benefits: "Kaupunkielämä tarjoaa..." (City life offers...), "Toisaalta kaupungissa..." (On the other hand, in the city...)',
+    'Countryside benefits: "Maaseudulla sen sijaan..." (In the countryside, however...), "Luonnonläheisyys..." (Closeness to nature...)',
+    'Your reasoned choice: "Punnittuani molempia vaihtoehtoja..." (Having weighed both options...), "Pitkällä tähtäimellä..." (In the long term...)'
+  ],
+  example: 'Keskustelu kaupunki- ja maaseutuelämän välillä on ajankohtainen, kun yhä useammat muuttavat kaupunkeihin työn perässä. Kaupunkielämä tarjoaa monipuoliset palvelut, työmahdollisuuksia ja vilkkaan kulttuuritarjonnan. Toisaalta kaupungissa asumisen kustannukset ovat nousseet huomattavasti, ja monet kärsivät melusta ja kiireestä.\n\nMaaseudulla sen sijaan elämänrytmi on rauhallisempi ja luonnonläheisyys parantaa elämänlaatua. Kuitenkin palvelut ovat usein kaukana, ja työllistyminen voi olla rajoitetumpaa.\n\nPunnittuani molempia vaihtoehtoja uskon, että ihanteellinen ratkaisu olisi asua pienehkössä kaupungissa, jossa yhdistyvät luonnonläheisyys ja kohtuulliset palvelut. Pitkällä tähtäimellä tasapaino ympäristön ja toiminnallisuuden välillä on ratkaisevaa.',
+},
+{
+  id: 36,
+  title: 'The Role of News Media',
+  titleFi: 'Uutismedian rooli',
+  level: 'B2',
+  xp: 120,
+  color: 'from-gray-500 to-slate-700',
+  description: 'Analyse how the role of news media has changed in the digital age and what challenges this creates.',
+  hints: [
+    'Opening: "Perinteisen uutismedian rooli on muuttunut..." (The role of traditional news media has changed...)',
+    'Digital shift: "Digitalisaation myötä..." (With digitalisation...), "Sosiaalinen media on..." (Social media has...)',
+    'Risks: "Tämä kehitys on tuonut mukanaan..." (This development has brought with it...), "misinformaatio" (misinformation), "kuplautuminen" (echo chambers)',
+    'Future: "Tulevaisuudessa uutismedian on..." (In the future, news media must...), "Ratkaisevaa on..." (Crucial is...)'
+  ],
+  example: 'Perinteisen uutismedian rooli on muuttunut dramaattisesti viimeisen kahdenkymmenen vuoden aikana. Digitalisaation myötä uutiset leviävät nopeammin kuin koskaan, ja sosiaalinen media on noussut keskeiseksi uutislähteeksi erityisesti nuorten keskuudessa.\n\nTämä kehitys on tuonut mukanaan vakavia haasteita. Misinformaatio ja valeuutiset leviävät nopeasti, eikä lukijoilla ole aina työkaluja erottaa luotettavaa tietoa väärästä. Lisäksi algoritmit voivat luoda kuplia, joissa ihmiset näkevät vain omaa maailmankuvaansa vahvistavaa sisältöä.\n\nTulevaisuudessa uutismedian on panostettava entistä enemmän faktantarkistukseen ja medialukutaidon edistämiseen. Ratkaisevaa on, säilyykö yleisön luottamus journalismiin.',
+},
+{
+  id: 37,
+  title: 'Consumerism and Sustainability',
+  titleFi: 'Kuluttaminen ja kestävyys',
+  level: 'B2',
+  xp: 115,
+  color: 'from-emerald-500 to-teal-600',
+  description: 'Write an essay exploring the tension between consumer culture and environmental sustainability.',
+  hints: [
+    'Set the problem: "Nyky-yhteiskunta perustuu..." (Modern society is based on...), "Jatkuva talouskasvu..." (Continuous economic growth...)',
+    'Consumer pressure: "Mainonta luo..." (Advertising creates...), "Kuluttajina meidät..." (As consumers we are...)',
+    'Environmental cost: "Tämän kulutuksen hinta on..." (The price of this consumption is...), "Luonnonvarat..." (Natural resources...)',
+    'Way forward: "Kestävämpi tulevaisuus edellyttää..." (A more sustainable future requires...), "Sekä yksilöiden että yritysten..." (Both individuals and companies...)'
+  ],
+  example: 'Nyky-yhteiskunta perustuu pitkälti jatkuvaan kulutuksen kasvuun, mikä asettaa meidät vaikean kysymyksen eteen: miten voimme ylläpitää elintasoamme tuhoamatta planeettaa?\n\nMainonta luo tarpeita, joita meillä ei alun perin ollut, ja kuluttajina meidät on totutettu siihen, että uusi on parempaa kuin vanha. Pikamuoti, elektroniikka ja kertakäyttökulttuuri ovat esimerkkejä tästä ajattelutavasta.\n\nTämän kulutuksen hinta on korkea — luonnonvarat hupenevat, jätevuoret kasvavat ja päästöt kiihdyttävät ilmastonmuutosta. Ongelma on rakenteellinen, ei pelkästään yksilötason.\n\nKestävämpi tulevaisuus edellyttää sekä yksilöiden valintojen muuttumista että yritysten vastuunottoa. Kiertotalous, korjaamisen kulttuuri ja vastuullinen suunnittelu ovat askelia oikeaan suuntaan.',
+},
+{
+  id: 38,
+  title: 'Immigration and Integration',
+  titleFi: 'Maahanmuutto ja kotoutuminen',
+  level: 'B2',
+  xp: 120,
+  color: 'from-indigo-500 to-blue-700',
+  description: 'Write a thoughtful text on what successful integration looks like and what both immigrants and the host society can do to support it.',
+  hints: [
+    'Define the topic: "Kotoutuminen on monimutkainen prosessi..." (Integration is a complex process...)',
+    'Language: "Kielen oppiminen on..." (Learning the language is...), "avainasemassa" (in a key position)',
+    'Society\'s role: "Vastaanottavalla yhteiskunnalla on..." (The host society has...), "Syrijntä estää..." (Discrimination prevents...)',
+    'Mutual process: "Kotoutuminen on kaksisuuntainen tie..." (Integration is a two-way street...), "Kumpikin osapuoli..." (Both parties...)'
+  ],
+  example: 'Kotoutuminen on monimutkainen prosessi, joka ulottuu paljon kielen oppimista syvemmälle. Se koskettaa identiteettiä, sosiaalisia suhteita ja tunnetta kuulumisesta yhteiskuntaan.\n\nKielen oppiminen on epäilemättä avainasemassa, sillä ilman yhteistä kieltä työllistyminen ja osallistuminen jäävät rajallisiksi. Kuitenkin kieli yksin ei riitä. Vastaanottavalla yhteiskunnalla on vastuu avata ovia — syrjintä työmarkkinoilla estää pätevien ihmisten potentiaalin.\n\nKotoutuminen on kaksisuuntainen tie. Maahanmuuttajan on oltava valmis sopeutumaan, mutta yhteiskunnan on oltava valmis joustamaan ja hyväksymään moninaisuus. Kumpikin osapuoli hyötyy, kun kotoutuminen onnistuu: yhteiskunta rikastuu kulttuurisesti ja taloudellisesti.\n\nLopulta onnistunut kotoutuminen näkyy siinä, että ihminen tuntee olonsa tervetulleeksi ja arvostetuksi juuri sellaisena kuin on.',
+},
+{
+  id: 39,
+  title: 'Technology and Human Relationships',
+  titleFi: 'Teknologia ja ihmissuhteet',
+  level: 'B2',
+  xp: 110,
+  color: 'from-violet-500 to-purple-700',
+  description: 'Analyse how digital technology affects the way we form and maintain human relationships.',
+  hints: [
+    'Opening: "Teknologia on muuttanut tapaamme olla..." (Technology has changed the way we are...), "yhteydessä toisiimme" (connected to each other)',
+    'Positive side: "Yhteydenpito on helpottunut..." (Keeping in touch has become easier...), "Välimatkat..." (Distances...)',
+    'Negative side: "Samalla pinnallisuus..." (At the same time superficiality...), "Some luo illuusion..." (Social media creates an illusion...)',
+    'Balance: "Terve tasapaino edellyttää..." (A healthy balance requires...), "Kasvokkainen vuorovaikutus..." (Face-to-face interaction...)'
+  ],
+  example: 'Teknologia on muuttanut perustavanlaatuisesti tapaamme olla yhteydessä toisiimme. Älypuhelimet ja sosiaalinen media mahdollistavat sen, että olemme jatkuvasti tavoitettavissa.\n\nYhteydenpito on helpottunut valtavasti, ja välimatkat ovat menettäneet merkitystään. Perhe ja ystävät toisella puolella maailmaa ovat videopuhelun päässä, mikä oli mahdotonta vain muutama vuosikymmen sitten.\n\nSamalla pinnallisuus on lisääntynyt. Sosiaalinen media luo illuusion syvistä suhteista, vaikka todellisuudessa saatamme tuntea itsemme yksinäisemmiksi kuin koskaan. Tykkäykset eivät korvaa aitoa kohtaamista.\n\nTerve tasapaino edellyttää, että osaamme välillä sulkea laitteet ja keskittyä kasvokkaiseen vuorovaikutukseen. Läsnäolo on lahja, jota teknologia ei voi korvata.',
+},
+{
+  id: 40,
+  title: 'Lifelong Learning',
+  titleFi: 'Elinikäinen oppiminen',
+  level: 'B2',
+  xp: 110,
+  color: 'from-cyan-500 to-blue-600',
+  description: 'Write an essay on why lifelong learning is essential in today\'s rapidly changing world.',
+  hints: [
+    'Thesis: "Elinikäinen oppiminen ei ole enää..." (Lifelong learning is no longer...), "vaan välttämättömyys" (but a necessity)',
+    'Reasons: "Työmarkkinat muuttuvat..." (The job market is changing...), "Automaatio..." (Automation...)',
+    'Personal growth: "Oppiminen ei rajoitu..." (Learning is not limited to...), "Henkinen hyvinvointi..." (Mental well-being...)',
+    'Practical advice: "Jokainen voi..." (Everyone can...), "Olipa kyseessä..." (Whether it is a question of...)'
+  ],
+  example: 'Elinikäinen oppiminen ei ole enää pelkkä ylevä ihanne vaan käytännön välttämättömyys. Työmarkkinat muuttuvat kiihtyvällä vauhdilla, ja monet tämän päivän ammateista eivät olleet olemassa kymmenen vuotta sitten.\n\nAutomaatio ja tekoäly muokkaavat kokonaisia toimialoja, mikä tarkoittaa, että oman osaamisen päivittäminen on ratkaisevan tärkeää työllistymisen kannalta. Kuitenkin oppimisen arvo ulottuu työelämää laajemmalle.\n\nOppiminen ei rajoitu ammatilliseen kehittymiseen. Uuden taidon oppiminen — oli se sitten kieli, soitin tai käsityö — tukee henkistä hyvinvointia ja pitää mielen virkeänä. Tutkimukset osoittavat, että uusien asioiden oppiminen voi jopa hidastaa ikääntymisen vaikutuksia aivoissa.\n\nJokainen voi aloittaa pienesti: kirjastosta, verkkokurssilta tai harrastuspiiristä. Olipa kyseessä sitten uusi tutkinto tai yksinkertainen ruoanlaittokurssi, jokainen askel on investointi omaan tulevaisuuteen.',
+}
 ];
 
 const LEVEL_COLORS: Record<string, string> = {
