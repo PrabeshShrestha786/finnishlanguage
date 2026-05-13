@@ -647,7 +647,7 @@ interface TranslationResult {
 }
 
 export default function WritingPage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, refreshUser } = useAuthStore();
   const [tab, setTab] = useState<'prompts' | 'translation'>('prompts');
   const [promptFilter, setPromptFilter] = useState<'All' | 'A1' | 'A2' | 'B1' | 'B2'>('All');
 
@@ -714,7 +714,7 @@ export default function WritingPage() {
         setFeedback(fb);
         if (fb.score >= 70 && selectedPrompt) {
           updateUser({ totalXP: (user?.totalXP || 0) + selectedPrompt.xp });
-          api.post('/users/xp', { xpEarned: selectedPrompt.xp, source: 'writing' }).catch(() => {});
+          api.post('/users/xp', { xpEarned: selectedPrompt.xp, source: 'writing' }).then(() => refreshUser()).catch(() => {});
         }
       }
     } catch {

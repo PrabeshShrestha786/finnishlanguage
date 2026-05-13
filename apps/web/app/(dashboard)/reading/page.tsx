@@ -1751,7 +1751,7 @@ interface AnyStory {
 type ViewState = 'list' | 'reading' | 'quiz' | 'result';
 
 export default function ReadingPage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, refreshUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<ViewState>('list');
   const [selectedStory, setSelectedStory] = useState<AnyStory | null>(null);
@@ -1956,7 +1956,7 @@ export default function ReadingPage() {
         if (finalPct >= 70 && selectedStory) {
           const xp = selectedStory.xp;
           updateUser({ totalXP: (user?.totalXP || 0) + xp });
-          api.post('/users/xp', { xpEarned: xp, source: 'reading' }).catch(() => {});
+          api.post('/users/xp', { xpEarned: xp, source: 'reading' }).then(() => refreshUser()).catch(() => {});
         }
         if (selectedStory) {
           setCompletedStories((prev) => {
