@@ -99,16 +99,20 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
     e.stopPropagation();
     if (speaking) return;
     setSpeaking(true);
+    // AudioContext must be created synchronously inside the user gesture or iOS
+    // will block playback. Resume it immediately to unlock before the async fetch.
+    const ctx = new AudioContext();
     try {
+      await ctx.resume();
       const res = await api.post('/ai/tts', { text: word.finnish }, { responseType: 'arraybuffer' });
-      const ctx = new AudioContext();
       const buffer = await ctx.decodeAudioData(res.data);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start();
-      source.onended = () => setSpeaking(false);
+      source.onended = () => { setSpeaking(false); ctx.close(); };
     } catch {
+      ctx.close();
       // fallback to browser TTS
       const u = new SpeechSynthesisUtterance(word.finnish);
       u.lang = 'fi-FI'; u.rate = 0.8;
