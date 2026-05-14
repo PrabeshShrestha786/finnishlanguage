@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Headphones, Play, Pause, RotateCcw, CheckCircle2, XCircle, Volume2, Eye, EyeOff, Star, Clock, Loader2, Trash2, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -1042,6 +1043,57 @@ export default function ListeningPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<(Track & { dbId?: string })[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const [wordBar, setWordBar] = useState<{
+    word: string; x: number; y: number;
+    translation: string | null;
+    form: string | null;
+    baseForm: string | null;
+    grammaticalCase: string | null;
+  } | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!wordBar) return;
+    let id: ReturnType<typeof setTimeout>;
+    const close = () => setWordBar(null);
+    id = setTimeout(() => document.addEventListener('click', close), 0);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordBar !== null]);
+
+  const handleWordClick = useCallback(async (word: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    const clean = word.replace(/[.,!?;:"""''()[\]…—–]/g, '').trim();
+    if (!clean || clean.length < 2) return;
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const sentence = (e.target as HTMLElement).closest('p')?.textContent?.trim() || '';
+    setWordBar({ word: clean, x: rect.left + rect.width / 2, y: rect.top, translation: null, form: null, baseForm: null, grammaticalCase: null });
+    setTranslating(true);
+    try {
+      const res = await api.post('/ai/translate', { text: clean, from: 'fi', to: 'en', context: sentence });
+      const d = res.data?.data || {};
+      setWordBar((prev) => prev ? {
+        ...prev,
+        translation: d.translation || '—',
+        form: d.form || null,
+        baseForm: d.baseForm || null,
+        grammaticalCase: d.grammaticalCase || null,
+      } : null);
+    } catch {
+      setWordBar((prev) => prev ? { ...prev, translation: '(failed)' } : null);
+    } finally {
+      setTranslating(false);
+    }
+  }, []);
 
   useEffect(() => {
     api.get('/ai/listening-tracks')
@@ -1213,6 +1265,40 @@ export default function ListeningPage() {
 
   return (
     <div className="space-y-6">
+      {/* Tap-to-translate tooltip */}
+      {mounted && wordBar && createPortal(
+        <div
+          className="fixed z-[9999] bg-slate-800 text-white rounded-xl shadow-2xl px-3.5 py-2.5 pointer-events-none"
+          style={{
+            left: Math.max(8, Math.min(wordBar.x - 90, window.innerWidth - 200)),
+            top: wordBar.y - 8,
+            transform: 'translateY(-100%)',
+            minWidth: 180,
+            maxWidth: 260,
+          }}
+        >
+          <div className="text-yellow-300 font-bold text-sm">{wordBar.word}</div>
+          {translating ? (
+            <div className="text-slate-400 text-xs mt-1 animate-pulse">Translating…</div>
+          ) : (
+            <>
+              <div className="text-white text-sm mt-0.5 font-medium">{wordBar.form || wordBar.translation || '—'}</div>
+              {(wordBar.baseForm || wordBar.grammaticalCase) && (
+                <div className="border-t border-slate-600 mt-1.5 pt-1.5 flex flex-col gap-0.5">
+                  {wordBar.baseForm && wordBar.baseForm !== wordBar.word && (
+                    <div className="text-slate-400 text-xs">{wordBar.baseForm} = {wordBar.translation}</div>
+                  )}
+                  {wordBar.grammaticalCase && (
+                    <div className="text-slate-500 text-xs italic">{wordBar.grammaticalCase}</div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>,
+        document.body,
+      )}
+
       <AnimatePresence mode="wait">
 
         {/* TRACK LIST */}
@@ -1471,9 +1557,24 @@ export default function ListeningPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4 text-slate-600 text-sm leading-7 whitespace-pre-line overflow-hidden"
+                      className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4 text-slate-600 text-sm leading-7 overflow-hidden"
                     >
-                      {selectedTrack.transcript}
+                      <p className="text-xs text-slate-400 mb-2 italic">Tap any word to translate</p>
+                      {selectedTrack.transcript.split('\n').map((para, pi) =>
+                        para.trim() === '' ? <br key={pi} /> : (
+                          <p key={pi} className="mb-1">
+                            {para.trim().split(/\s+/).map((word, wi) => (
+                              <span
+                                key={wi}
+                                onClick={(e) => handleWordClick(word, e)}
+                                className="cursor-pointer hover:bg-yellow-100 rounded px-0.5 transition-colors duration-100"
+                              >
+                                {word}{' '}
+                              </span>
+                            ))}
+                          </p>
+                        )
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
