@@ -35,7 +35,9 @@ export class AdminService {
   }
 
   async getUsers(query: { page?: number; limit?: number; search?: string; plan?: string }) {
-    const { page = 1, limit = 20, search, plan } = query;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const { search, plan } = query;
     const skip = (page - 1) * limit;
     const where: any = {};
     if (search) where.OR = [{ email: { contains: search } }, { username: { contains: search } }];
@@ -85,7 +87,9 @@ export class AdminService {
     return this.prisma.coupon.create({ data: { ...data, code: data.code.toUpperCase() } });
   }
 
-  async getLogs(page = 1, limit = 50) {
+  async getLogs(page: any = 1, limit: any = 50) {
+    page = Number(page) || 1;
+    limit = Number(limit) || 50;
     const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
       this.prisma.adminLog.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' } }),
@@ -116,7 +120,9 @@ export class AdminService {
   }
 
   async getSubscriptions(query: { page?: number; limit?: number; plan?: string; status?: string }) {
-    const { page = 1, limit = 20, plan, status } = query;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const { plan, status } = query;
     const skip = (page - 1) * limit;
     const where: any = {};
     if (plan) where.plan = plan;
