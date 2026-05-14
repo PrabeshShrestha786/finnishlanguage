@@ -63,6 +63,51 @@ export class AdminController {
     return this.adminService.getLogs(page, limit);
   }
 
+  @Get('users/:id')
+  getUser(@Param('id') id: string) {
+    return this.adminService.getUser(id);
+  }
+
+  @Patch('users/:id/role')
+  updateRole(@Param('id') id: string, @Body() body: { role: string }, @Request() req: any) {
+    return this.adminService.updateUserRole(req.user.sub, id, body.role);
+  }
+
+  @Get('subscriptions')
+  getSubscriptions(@Query() query: any) {
+    return this.adminService.getSubscriptions(query);
+  }
+
+  @Get('coupons')
+  getCoupons() {
+    return this.adminService.getCoupons();
+  }
+
+  @Patch('coupons/:id/toggle')
+  toggleCoupon(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+    return this.adminService.toggleCoupon(id, body.isActive);
+  }
+
+  @Get('courses')
+  getCourses() {
+    return this.adminService.getCourses();
+  }
+
+  @Patch('courses/:id/publish')
+  toggleCoursePublished(@Param('id') id: string, @Body() body: { isPublished: boolean }) {
+    return this.adminService.toggleCoursePublished(id, body.isPublished);
+  }
+
+  @Patch('lessons/:id/publish')
+  toggleLessonPublished(@Param('id') id: string, @Body() body: { isPublished: boolean }) {
+    return this.adminService.toggleLessonPublished(id, body.isPublished);
+  }
+
+  @Get('analytics')
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
   @Get('issues')
   getIssues(@Query('status') status?: string) {
     return this.issuesService.getAllReports(status);
