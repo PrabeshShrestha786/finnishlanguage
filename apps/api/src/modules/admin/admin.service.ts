@@ -174,8 +174,8 @@ export class AdminService {
         select: { amount: true, createdAt: true },
       }),
       this.prisma.attempt.findMany({
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        select: { xpEarned: true, createdAt: true },
+        where: { completedAt: { gte: thirtyDaysAgo } },
+        select: { xpEarned: true, completedAt: true },
       }),
       this.prisma.user.findMany({
         orderBy: { totalXP: 'desc' },
@@ -202,7 +202,7 @@ export class AdminService {
     }));
     const activity = days.map((day) => ({
       date: day,
-      xp: xpRaw.filter((a) => a.createdAt.toISOString().slice(0, 10) === day).reduce((s, a) => s + (a.xpEarned || 0), 0),
+      xp: xpRaw.filter((a) => a.completedAt.toISOString().slice(0, 10) === day).reduce((s, a) => s + (a.xpEarned || 0), 0),
     }));
 
     return { signups, revenue, activity, topUsers, levelBreakdown };
