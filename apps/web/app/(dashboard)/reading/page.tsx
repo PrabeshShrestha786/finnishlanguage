@@ -12,7 +12,7 @@ export default async function ReadingPage() {
         const res = await fetch(`${API_URL}/content/stories`, {
           next: { revalidate: 3600 },
         });
-        if (!res.ok) return [];
+        if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
         const json = await res.json();
         return json.data ?? json;
       },
