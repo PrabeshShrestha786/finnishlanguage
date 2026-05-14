@@ -177,6 +177,7 @@ model User {
   writingSubmissions WritingSubmission[]
   speakingAttempts  SpeakingAttempt[]
   userStories       UserStory[]
+  issueReports      IssueReport[]
 
   @@index([email])
   @@index([username])
@@ -701,4 +702,20 @@ model AudioFile {
   duration  Int?
   speed     Float    @default(1.0)
   createdAt DateTime @default(now())
+}
+
+// ─── ISSUE REPORTS ────────────────────────────────────────────────────────────
+
+model IssueReport {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description String
+  imageData   String?  @db.Text
+  page        String?
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
 }

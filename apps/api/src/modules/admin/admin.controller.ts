@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
+import { IssuesService } from '../issues/issues.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -14,7 +15,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 @Roles('ADMIN', 'SUPER_ADMIN')
 @Controller('admin')
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminService, private issuesService: IssuesService) {}
 
   @Get('stats')
   @ApiOperation({ summary: 'Admin dashboard stats' })
@@ -60,5 +61,15 @@ export class AdminController {
   @Get('logs')
   getLogs(@Query('page') page?: number, @Query('limit') limit?: number) {
     return this.adminService.getLogs(page, limit);
+  }
+
+  @Get('issues')
+  getIssues(@Query('status') status?: string) {
+    return this.issuesService.getAllReports(status);
+  }
+
+  @Patch('issues/:id/status')
+  updateIssueStatus(@Param('id') id: string, @Body() body: { status: string }) {
+    return this.issuesService.updateStatus(id, body.status);
   }
 }

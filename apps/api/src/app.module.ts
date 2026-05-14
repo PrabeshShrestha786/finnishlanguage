@@ -15,6 +15,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CacheModule } from './common/cache.module';
 import { ContentModule } from './modules/content/content.module';
+import { IssuesModule } from './modules/issues/issues.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ContentModule } from './modules/content/content.module';
     AdminModule,
     NotificationsModule,
     ContentModule,
+    IssuesModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],
