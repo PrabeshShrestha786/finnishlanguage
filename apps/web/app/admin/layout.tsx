@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
-import { LayoutDashboard, Users, BookOpen, TrendingUp, Tag, FileText, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, TrendingUp, Tag, AlertCircle, ArrowLeft } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 const ADMIN_NAV = [
@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { href: '/admin/lessons', icon: BookOpen, label: 'Lessons' },
   { href: '/admin/analytics', icon: TrendingUp, label: 'Analytics' },
   { href: '/admin/subscriptions', icon: Tag, label: 'Subscriptions' },
+  { href: '/admin/issues', icon: AlertCircle, label: 'Issue Reports' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
