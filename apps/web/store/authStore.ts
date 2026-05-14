@@ -107,6 +107,11 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'finnmate-auth',
       partialize: (state) => ({ accessToken: state.accessToken, refreshToken: state.refreshToken }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.accessToken) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${state.accessToken}`;
+        }
+      },
     },
   ),
 );

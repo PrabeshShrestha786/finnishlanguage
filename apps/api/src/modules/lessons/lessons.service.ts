@@ -1,13 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
+import { CacheService } from '../../common/cache.service';
+
+const TTL_COURSES = 3600; // 1 hour
 
 @Injectable()
 export class LessonsService {
-  constructor(private prisma: PrismaService, private leaderboard: LeaderboardService) {}
+  constructor(
+    private prisma: PrismaService,
+    private leaderboard: LeaderboardService,
+    private cache: CacheService,
+  ) {}
 
   async getCourses(level?: string) {
-    return this.prisma.course.findMany({
+    const KEY = level ? `courses:level:${level}` : 'courses';
+    const cached = await this.cache.get<any[]>(KEY);
+    if (cached) return cached;
+
+    const result = await this.prisma.course.findMany({
       where: { isPublished: true, ...(level && { level: level as any }) },
       include: {
         modules: {
@@ -24,6 +35,9 @@ export class LessonsService {
       },
       orderBy: { order: 'asc' },
     });
+
+    await this.cache.set(KEY, result, TTL_COURSES);
+    return result;
   }
 
   async getLesson(id: string, userId: string) {
@@ -107,6 +121,7 @@ export class LessonsService {
           data: { totalXP: { increment: xpEarned }, lastActiveAt: new Date() },
         }),
         this.leaderboard.addXP(userId, xpEarned),
+        this.leaderboard.invalidateUserRank(userId),
       ]);
     }
 

@@ -13,9 +13,12 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CacheModule } from './common/cache.module';
+import { ContentModule } from './modules/content/content.module';
 
 @Module({
   imports: [
+    CacheModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -46,6 +49,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     LeaderboardModule,
     AdminModule,
     NotificationsModule,
+    ContentModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

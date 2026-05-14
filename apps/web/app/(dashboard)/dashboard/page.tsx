@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import {
   Flame, BookOpen, Headphones, Mic, PenTool, Brain,
@@ -22,6 +23,53 @@ const MODULES = [
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const prefetchRoute = useCallback((href: string) => {
+    if (href === '/lessons') {
+      queryClient.prefetchQuery({
+        queryKey: ['courses'],
+        queryFn: () => api.get('/lessons/courses').then((r) => r.data.data),
+        staleTime: Infinity,
+      });
+      if (user) {
+        queryClient.prefetchQuery({
+          queryKey: ['progress'],
+          queryFn: () => api.get('/lessons/progress').then((r) => r.data.data),
+          staleTime: 30_000,
+        });
+      }
+    } else if (href === '/vocabulary') {
+      queryClient.prefetchQuery({
+        queryKey: ['vocab-stats'],
+        queryFn: () => api.get('/vocabulary/stats').then((r) => r.data.data).catch(() => null),
+        staleTime: 30_000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['vocab-categories', 'all'],
+        queryFn: () => api.get('/vocabulary/categories').then((r) => r.data.data).catch(() => []),
+        staleTime: Infinity,
+      });
+    } else if (href === '/leaderboard') {
+      queryClient.prefetchQuery({
+        queryKey: ['leaderboard', 'weekly'],
+        queryFn: () => api.get('/leaderboard/weekly').then((r) => r.data.data),
+        staleTime: 5 * 60 * 1000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['leaderboard', 'all-time'],
+        queryFn: () => api.get('/leaderboard/all-time').then((r) => r.data.data),
+        staleTime: 5 * 60 * 1000,
+      });
+      if (user) {
+        queryClient.prefetchQuery({
+          queryKey: ['leaderboard', 'my-rank'],
+          queryFn: () => api.get('/leaderboard/my-rank').then((r) => r.data.data),
+          staleTime: 5 * 60 * 1000,
+        });
+      }
+    }
+  }, [queryClient, user]);
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -32,7 +80,7 @@ export default function DashboardPage() {
   const { data: weeklyRaw, isLoading: loadingLeaderboard } = useQuery({
     queryKey: ['leaderboard', 'weekly'],
     queryFn: () => api.get('/leaderboard/weekly').then((r) => r.data.data),
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000,
   });
 
   const totalXP: number = stats?.totalXP || user?.totalXP || 0;
@@ -101,7 +149,7 @@ export default function DashboardPage() {
               <Trophy className="w-5 h-5 text-amber-500" />
               <h2 className="text-lg font-black text-slate-800">Weekly Leaderboard</h2>
             </div>
-            <Link href="/leaderboard" className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1 font-medium">
+            <Link href="/leaderboard" onMouseEnter={() => prefetchRoute('/leaderboard')} className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1 font-medium">
               See all <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -151,7 +199,7 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-slate-800">Learning Modules</h2>
-          <Link href="/lessons" className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1 font-medium">
+          <Link href="/lessons" onMouseEnter={() => prefetchRoute('/lessons')} className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1 font-medium">
             View all <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
@@ -164,7 +212,7 @@ export default function DashboardPage() {
               transition={{ delay: i * 0.05 }}
               whileHover={{ y: -3 }}
             >
-              <Link href={mod.href} className="bg-white rounded-2xl p-4 flex flex-col items-start gap-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all block">
+              <Link href={mod.href} onMouseEnter={() => prefetchRoute(mod.href)} className="bg-white rounded-2xl p-4 flex flex-col items-start gap-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all block">
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${mod.color} flex items-center justify-center shadow-sm`}>
                   <mod.icon className="w-5 h-5 text-white" />
                 </div>

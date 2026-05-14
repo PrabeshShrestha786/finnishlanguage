@@ -6,22 +6,6 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — attach token
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('finnmate-auth');
-      if (stored) {
-        const { state } = JSON.parse(stored);
-        if (state?.accessToken) {
-          config.headers.Authorization = `Bearer ${state.accessToken}`;
-        }
-      }
-    } catch {}
-  }
-  return config;
-});
-
 // Mutex so only one token refresh happens at a time
 let refreshPromise: Promise<string> | null = null;
 
@@ -47,7 +31,6 @@ api.interceptors.response.use(
                 .finally(() => { refreshPromise = null; });
             }
             const newToken = await refreshPromise;
-            // Persist new token back to localStorage so the request interceptor picks it up
             try {
               const raw = localStorage.getItem('finnmate-auth');
               if (raw) {

@@ -266,7 +266,8 @@ export default function VocabularyPage() {
     queryFn: () => api.get('/vocabulary/categories', {
       params: level !== 'all' ? { level } : {},
     }).then((r) => r.data.data as { category: string; count: number }[]).catch(() => []),
-    staleTime: 60_000,
+    staleTime: Infinity,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: favoritesCount } = useQuery({
@@ -287,7 +288,7 @@ export default function VocabularyPage() {
       },
     }).then((r) => r.data.data).catch(() => null),
     enabled: view === 'flashcard',
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   const { data: wordsData, isLoading: loadingWords } = useQuery({
@@ -307,7 +308,8 @@ export default function VocabularyPage() {
         },
       }).then((r) => r.data.data).catch(() => null);
     },
-    staleTime: 60_000,
+    staleTime: category === 'Favorites' ? 30_000 : Infinity,
+    gcTime: 60 * 60 * 1000,
   });
 
   const { data: statusCardsData, isLoading: loadingStatusCards } = useQuery({
@@ -318,7 +320,7 @@ export default function VocabularyPage() {
       return Promise.resolve(null);
     },
     enabled: view === 'flashcard' && sessionMode !== 'category',
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const reviewMutation = useMutation({

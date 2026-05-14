@@ -99,6 +99,8 @@ export default function LessonPage() {
     queryKey: ['lesson', lessonId],
     queryFn: () => api.get(`/lessons/${lessonId}`).then((r) => r.data.data),
     enabled: !!lessonId,
+    staleTime: Infinity,
+    gcTime: 60 * 60 * 1000,
   });
 
   const attemptMutation = useMutation({
