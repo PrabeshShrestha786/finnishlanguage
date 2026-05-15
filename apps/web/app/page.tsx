@@ -354,21 +354,6 @@ export default function LandingPage() {
           <StatCounter value={6} label="CEFR Levels" color="text-aurora-purple" />
         </motion.div>
 
-        {/* Scroll indicator */}
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-600"
-        >
-          <span className="text-xs">Scroll to explore</span>
-          <div className="w-5 h-8 border-2 border-slate-600 rounded-full flex items-start justify-center p-1">
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="w-1.5 h-1.5 bg-slate-500 rounded-full"
-            />
-          </div>
-        </motion.div>
       </motion.section>
 
       {/* ── LEVEL PATH ── */}
