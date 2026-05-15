@@ -285,19 +285,19 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="grid grid-cols-1 gap-y-3">
               {[
                 { label: 'First Name', value: user?.firstName || '—' },
                 { label: 'Last Name', value: user?.lastName || '—' },
                 { label: 'Username', value: `@${user?.username || 'learner'}` },
-                { label: 'Email', value: user?.email || '—' },
-              ].map(({ label, value }) => (
+                { label: 'Email', value: user?.email || '—', breakAll: true },
+              ].map(({ label, value, breakAll }) => (
                 <div key={label}>
                   <div className="text-xs font-semibold text-slate-400 mb-0.5">{label}</div>
-                  <div className="text-slate-800 font-medium text-sm truncate">{value}</div>
+                  <div className={`text-slate-800 font-medium text-sm ${breakAll ? 'break-all' : ''}`}>{value}</div>
                 </div>
               ))}
-              <div className="col-span-2">
+              <div>
                 <div className="text-xs font-semibold text-slate-400 mb-0.5">Bio</div>
                 <div className="text-slate-600 text-sm">{user?.bio || <span className="text-slate-300 italic">No bio yet.</span>}</div>
               </div>
