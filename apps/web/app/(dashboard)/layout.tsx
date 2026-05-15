@@ -199,7 +199,6 @@ function MobileBottomNav() {
 
         {/* Report Issues button */}
         <button
-          onTouchStart={(e) => { e.preventDefault(); openReport(); }}
           onClick={openReport}
           className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
           <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center transition-all hover:bg-red-100">
