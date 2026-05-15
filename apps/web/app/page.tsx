@@ -68,7 +68,7 @@ function FloatingWord({ word, translation, delay = 0, x = '50%', y = '50%' }: {
       animate={{ opacity: [0, 1, 1, 0], y: [20, 0, -10, -30] }}
       transition={{ duration: 4, delay, repeat: Infinity, repeatDelay: 6 }}
       className="absolute pointer-events-none"
-      style={{ left: x, top: y }}
+      style={{ left: `min(${x}, calc(100% - 200px))`, top: y }}
     >
       <div className="glass-card rounded-2xl px-4 py-2 text-sm font-medium">
         <span className="text-aurora-green">{word}</span>
