@@ -180,7 +180,7 @@ function MobileBottomNav() {
         {MOBILE_NAV.slice(0, 1).map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px]">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm' : 'bg-slate-100'}`}>
                 <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               </div>
@@ -190,7 +190,7 @@ function MobileBottomNav() {
         })}
 
         {/* Report Issues button */}
-        <button onClick={openReport} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px]">
+        <button onClick={openReport} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
           <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center transition-all hover:bg-red-100">
             <REPORT_NAV.icon className="w-4 h-4 text-slate-500" />
           </div>
@@ -201,7 +201,7 @@ function MobileBottomNav() {
         {MOBILE_NAV.slice(1).map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px]">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm' : 'bg-slate-100'}`}>
                 <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               </div>
