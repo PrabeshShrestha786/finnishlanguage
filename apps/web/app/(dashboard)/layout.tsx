@@ -169,9 +169,17 @@ function MobileHeader() {
 // ── Mobile bottom nav ────────────────────────────────────────────────────────
 function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   const openReport = () => window.dispatchEvent(new CustomEvent('open-report-modal'));
+
+  // Navigate on touchStart so document-level click listeners on child pages
+  // (e.g. reading/listening word-tooltip close handlers) don't intercept the tap.
+  const handleNavTouch = (href: string) => (e: React.TouchEvent) => {
+    e.preventDefault();
+    router.push(href);
+  };
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-lg">
@@ -180,7 +188,9 @@ function MobileBottomNav() {
         {MOBILE_NAV.slice(0, 1).map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
+            <Link key={item.href} href={item.href}
+              onTouchStart={handleNavTouch(item.href)}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm' : 'bg-slate-100'}`}>
                 <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               </div>
@@ -190,7 +200,10 @@ function MobileBottomNav() {
         })}
 
         {/* Report Issues button */}
-        <button onClick={openReport} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
+        <button
+          onTouchStart={(e) => { e.preventDefault(); openReport(); }}
+          onClick={openReport}
+          className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
           <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center transition-all hover:bg-red-100">
             <REPORT_NAV.icon className="w-4 h-4 text-slate-500" />
           </div>
@@ -201,7 +214,9 @@ function MobileBottomNav() {
         {MOBILE_NAV.slice(1).map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
+            <Link key={item.href} href={item.href}
+              onTouchStart={handleNavTouch(item.href)}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 min-w-[56px] touch-manipulation">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm' : 'bg-slate-100'}`}>
                 <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               </div>
