@@ -26,7 +26,31 @@ body {
   overflow-x: hidden;
 }
 
+/* ─── GLASS ──────────────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(10, 14, 26, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.glass-card {
+  background: rgba(19, 31, 53, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.glass-light {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* ─── GRADIENT TEXT ──────────────────────────────────────────────────────── */
+.gradient-text-aurora {
+  background: linear-gradient(135deg, #00ffa3 0%, #00d4e8 50%, #9b59ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .gradient-text {
   background: linear-gradient(135deg, #254ded 0%, #9b59ff 100%);
   -webkit-background-clip: text;
@@ -69,6 +93,23 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 200, 150, 0.45);
 }
+
+/* ─── GLOW & CARD EFFECTS ────────────────────────────────────────────────── */
+.glow-blue   { box-shadow: 0 0 30px rgba(37, 77, 237, 0.25); }
+.glow-green  { box-shadow: 0 0 30px rgba(0, 255, 163, 0.2); }
+.glow-purple { box-shadow: 0 0 30px rgba(155, 89, 255, 0.2); }
+
+.card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.35); }
+
+/* Feature card background tints */
+.bg-reading   { background: linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(59,130,246,0.04) 100%); }
+.bg-listening { background: linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(109,40,217,0.04) 100%); }
+.bg-speaking  { background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(20,184,166,0.04) 100%); }
+.bg-writing   { background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.04) 100%); }
+.bg-vocab     { background: linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(249,115,22,0.04) 100%); }
+.bg-yki       { background: linear-gradient(135deg, rgba(37,77,237,0.06) 0%, rgba(37,77,237,0.04) 100%); }
+.bg-ai-tutor  { background: linear-gradient(135deg, rgba(155,89,255,0.06) 0%, rgba(37,77,237,0.04) 100%); }
 
 /* ─── CARD ───────────────────────────────────────────────────────────────── */
 .card {

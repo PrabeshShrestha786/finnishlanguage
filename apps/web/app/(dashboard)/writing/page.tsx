@@ -825,7 +825,7 @@ export default function WritingPage() {
                       </span>
                       {txTask.topic && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">{txTask.topic}</span>}
                     </div>
-                    <p className="text-slate-800 text-base leading-relaxed font-medium">{txTask.source}</p>
+                    <p className="text-slate-800 text-sm md:text-base leading-relaxed font-medium">{txTask.source}</p>
                     {txTask.hints.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {txTask.hints.map((h, i) => (
@@ -835,7 +835,7 @@ export default function WritingPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 text-sm">
+                  <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 md:p-8 text-center text-slate-400 text-sm">
                     Click &ldquo;Generate Task&rdquo; to get an English text to translate
                   </div>
                 )}
@@ -880,7 +880,7 @@ export default function WritingPage() {
                     </div>
 
                     {/* Score breakdown */}
-                    <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
                       {[
                         { label: 'Accuracy', val: txResult.accuracy, max: 40 },
                         { label: 'Grammar', val: txResult.grammar, max: 30 },
@@ -1011,7 +1011,7 @@ export default function WritingPage() {
           ← Back
         </button>
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[selectedPrompt.level]}`}>{selectedPrompt.level}</span>
-        <h1 className="text-xl font-black text-slate-800">{selectedPrompt.title}</h1>
+        <h1 className="text-base md:text-xl font-black text-slate-800 truncate">{selectedPrompt.title}</h1>
       </motion.div>
 
       <div className="grid md:grid-cols-3 gap-4">
@@ -1070,7 +1070,7 @@ export default function WritingPage() {
                 {/* Highlighted inline diff */}
                 <div>
                   <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-2">Your Text</p>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm leading-8">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-sm leading-7 md:leading-8">
                     {renderHighlightedText(text, feedback.mistakes)}
                   </div>
                   {feedback.mistakes.length > 0 && (

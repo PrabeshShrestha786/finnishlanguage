@@ -4,9 +4,10 @@ import { UsersController } from './users.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
+import { StreakModule } from '../streak/streak.module';
 
 @Module({
-  imports: [LeaderboardModule],
+  imports: [LeaderboardModule, StreakModule],
   controllers: [UsersController],
   providers: [UsersService, PrismaService, LeaderboardService],
   exports: [UsersService],

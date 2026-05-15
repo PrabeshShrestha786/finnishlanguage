@@ -560,18 +560,18 @@ const { data: baseStaticStories = [] } = useQuery<AnyStory[]>({
 
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className={`h-2 bg-gradient-to-r ${selectedStory.color}`} />
-              <div className="p-6 md:p-8">
+              <div className="p-4 md:p-8">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[selectedStory.level]}`}>{selectedStory.level}</span>
                   <span className="text-xs text-slate-400">{selectedStory.category}</span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 mb-0.5">{selectedStory.title}</h2>
-                <p className="text-slate-400 text-sm mb-6">{selectedStory.titleEn}</p>
+                <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-0.5">{selectedStory.title}</h2>
+                <p className="text-slate-400 text-sm mb-4">{selectedStory.titleEn}</p>
 
                 <p className="text-xs text-slate-400 mb-2 flex items-center gap-1.5">
                   <span className="inline-block w-2 h-2 bg-yellow-200 rounded" /> Tap any word to translate
                 </p>
-                <div className="text-slate-700 leading-8 text-base mb-6 bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-4">
+                <div className="text-slate-700 leading-7 md:leading-8 text-sm md:text-base mb-4 bg-slate-50 rounded-xl p-3 md:p-5 border border-slate-100 space-y-3 md:space-y-4">
                   {renderClickableText(selectedStory.text)}
                 </div>
 

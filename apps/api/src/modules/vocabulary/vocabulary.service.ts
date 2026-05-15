@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StreakService } from '../streak/streak.service';
 
 @Injectable()
 export class VocabularyService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private streak: StreakService) {}
 
   async getWords(query: { category?: string; level?: string; page?: number; limit?: number }) {
     const { category, level } = query;
@@ -98,7 +99,7 @@ export class VocabularyService {
           data: { userId, answer: { source: 'vocabulary' }, isCorrect: true, score: 2, xpEarned: 2 },
         }),
       ]);
-      await this.updateStreak(userId);
+      await this.streak.updateStreak(userId, 2);
     }
 
     return { progress, nextReview, interval };
@@ -166,33 +167,6 @@ export class VocabularyService {
       orderBy: { category: 'asc' },
     });
     return counts.map((c) => ({ category: c.category, count: c._count.id }));
-  }
-
-  private async updateStreak(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const existing = await this.prisma.streakRecord.findUnique({
-      where: { userId_date: { userId, date: today } },
-    });
-    if (existing) return;
-
-    await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
-
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yest = await this.prisma.streakRecord.findUnique({
-      where: { userId_date: { userId, date: yesterday } },
-    });
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const newStreak = yest ? (user?.currentStreak || 0) + 1 : 1;
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        currentStreak: newStreak,
-        longestStreak: { set: Math.max(user?.longestStreak || 0, newStreak) },
-        lastActiveAt: new Date(),
-      },
-    });
   }
 
   async toggleFavorite(userId: string, wordId: string) {

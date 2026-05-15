@@ -238,7 +238,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Compact stats row */}
-          <div className="flex items-center gap-4 pb-1 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-4 pb-1 flex-shrink-0">
             {[
               { icon: Flame, label: 'Streak', value: user?.currentStreak || 0, color: 'text-orange-500' },
               { icon: Zap, label: 'XP', value: (user?.totalXP || 0).toLocaleString(), color: 'text-amber-500' },
@@ -285,7 +285,7 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
               {[
                 { label: 'First Name', value: user?.firstName || '—' },
                 { label: 'Last Name', value: user?.lastName || '—' },
@@ -327,7 +327,7 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { key: 'firstName', label: 'First Name', icon: User, placeholder: 'Your first name' },
                 { key: 'lastName', label: 'Last Name', icon: User, placeholder: 'Your last name' },
@@ -399,7 +399,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-2">Native Language</label>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
                 {LANGUAGES.map((lang) => (
                   <button key={lang.code} onClick={() => updateForm({ nativeLanguage: lang.code })}
                     className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-medium transition-all ${form.nativeLanguage === lang.code ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>

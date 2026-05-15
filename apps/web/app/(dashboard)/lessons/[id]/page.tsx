@@ -236,12 +236,12 @@ export default function LessonPage() {
     return (
       <div className="max-w-md mx-auto">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
+          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-8 text-center">
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
-            className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
-            <Trophy className="w-10 h-10 text-amber-500" />
+            className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4 md:mb-5">
+            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-amber-500" />
           </motion.div>
-          <h2 className="text-2xl font-black text-slate-800 mb-1">Lesson Complete!</h2>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-1">Lesson Complete!</h2>
           <p className="text-slate-500 text-sm mb-5">{lesson.title}</p>
           {quizSlides.length > 0 && (
             <div className="bg-slate-50 rounded-xl p-4 mb-4">
@@ -249,7 +249,7 @@ export default function LessonPage() {
               <div className="text-slate-400 text-sm">{correctCount}/{quizSlides.length} questions correct</div>
             </div>
           )}
-          <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-lg mb-6">
+          <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold text-base md:text-lg mb-4 md:mb-6">
             <Zap className="w-5 h-5 text-amber-500" />+{totalXpEarned} XP Earned!
           </div>
           <div className="flex gap-3">
@@ -294,9 +294,9 @@ export default function LessonPage() {
           exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
 
           {slide.kind === 'info' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center space-y-4 min-h-64 flex flex-col items-center justify-center">
-              {slide.word && <div className="text-4xl font-black text-slate-800 tracking-tight">{slide.word}</div>}
-              {slide.translation && <div className="text-lg font-semibold gradient-text">{slide.translation}</div>}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-8 text-center space-y-3 md:space-y-4 min-h-52 md:min-h-64 flex flex-col items-center justify-center">
+              {slide.word && <div className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">{slide.word}</div>}
+              {slide.translation && <div className="text-base md:text-lg font-semibold gradient-text">{slide.translation}</div>}
               {slide.content && <p className="text-slate-500 text-sm max-w-xs leading-6">{slide.content}</p>}
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={next}
                 className="btn-primary px-8 py-3 text-sm mt-2 flex items-center gap-2">
@@ -306,12 +306,12 @@ export default function LessonPage() {
           )}
 
           {slide.kind === 'quiz' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 space-y-4 md:space-y-5">
               <div className="text-center">
                 <div className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">
                   {slide.fillBlank ? 'Fill in the Blank' : 'Quiz'}
                 </div>
-                <h3 className="text-slate-800 font-bold text-xl">{slide.question}</h3>
+                <h3 className="text-slate-800 font-bold text-base md:text-xl">{slide.question}</h3>
               </div>
 
               {/* Fill-in-the-blank text input */}

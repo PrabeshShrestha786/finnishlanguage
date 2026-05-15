@@ -5,9 +5,9 @@ import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   BookOpen, Headphones, Mic, PenTool, Brain, Trophy,
-  Zap, Star, ChevronRight, Play, CheckCircle2, Globe,
-  Flame, Target, Users, Award, ArrowRight, Volume2,
-  MessageCircle, Sparkles, GraduationCap,
+  Zap, ChevronRight, Play, CheckCircle2,
+  Flame, Target, ArrowRight,
+  Sparkles, GraduationCap,
 } from 'lucide-react';
 
 // ─── AURORA CANVAS ────────────────────────────────────────────────────────────
@@ -120,38 +120,38 @@ const features = [
   {
     icon: BookOpen, title: 'Reading Practice', color: 'from-cyan-500 to-blue-500',
     glow: 'glow-blue', bg: 'bg-reading',
-    desc: 'Finnish stories, news & dialogues with instant word lookup. Tap any word for translation + audio.',
-    badge: 'A1–C1', items: ['Selkouutiset articles', 'Interactive vocab lookup', 'Comprehension quizzes'],
+    desc: 'AI-generated Finnish stories matched to your CEFR level. Tap any word for instant translation, audio, and grammar notes.',
+    badge: 'A1–C1', items: ['Level-matched AI stories', 'Tap-to-translate words', 'Comprehension exercises'],
   },
   {
     icon: Headphones, title: 'Listening Practice', color: 'from-purple-500 to-violet-600',
     glow: 'glow-purple', bg: 'bg-listening',
-    desc: 'Native Finnish audio at slow/normal speed. MCQ, dictation, fill-in-the-blank.',
-    badge: 'A1–C2', items: ['Native speaker audio', 'Slow/Normal speed', 'Dictation mode'],
+    desc: 'Native Finnish audio with adjustable playback speed. Practice dictation, fill-in-the-blank, and multiple-choice comprehension.',
+    badge: 'A1–C2', items: ['Native speaker audio', 'Slow / normal speed toggle', 'Dictation & MCQ modes'],
   },
   {
     icon: Mic, title: 'Speaking Practice', color: 'from-emerald-400 to-teal-500',
     glow: 'glow-green', bg: 'bg-speaking',
-    desc: 'Speak into your mic and get instant AI pronunciation scoring, fluency feedback.',
-    badge: 'AI-Powered', items: ['Pronunciation scoring', 'Accent feedback', 'Repeat-after-me'],
+    desc: 'Record your voice and receive instant AI pronunciation scores. Phoneme-level feedback helps you sound more Finnish.',
+    badge: 'AI-Powered', items: ['Pronunciation scoring', 'Phoneme-level feedback', 'Repeat-after-me drills'],
   },
   {
     icon: PenTool, title: 'Writing Practice', color: 'from-blue-500 to-indigo-600',
     glow: 'glow-blue', bg: 'bg-writing',
-    desc: 'AI checks your grammar in real-time. Essay writing with instant corrections.',
-    badge: 'AI Grammar', items: ['Real-time corrections', 'Essay feedback', 'Vocabulary suggestions'],
+    desc: 'Write in Finnish and get AI grammar corrections in real time. Detailed explanations help you understand every mistake.',
+    badge: 'AI Grammar', items: ['Real-time AI corrections', 'Grammar explanations', 'Vocabulary suggestions'],
   },
   {
     icon: Brain, title: 'Vocabulary Builder', color: 'from-yellow-400 to-orange-500',
     glow: '', bg: 'bg-vocab',
-    desc: 'Spaced repetition flashcards across 20+ categories. Daily new words tailored to your level.',
-    badge: '5000+ Words', items: ['SM-2 spaced repetition', 'Audio pronunciation', 'Daily word goals'],
+    desc: '5,000+ Finnish words across 50+ topic categories. SM-2 spaced repetition surfaces each word at exactly the right moment.',
+    badge: '5,000+ Words', items: ['SM-2 spaced repetition', 'Audio pronunciation', '50+ topic categories'],
   },
   {
     icon: GraduationCap, title: 'YKI Exam Prep', color: 'from-finn-500 to-finn-700',
     glow: 'glow-blue', bg: 'bg-yki',
-    desc: 'Full mock exams with timed sessions. Score analysis and personalized weak-area targeting.',
-    badge: 'Exam Ready', items: ['Official YKI format', 'Timed mock tests', 'Score analysis'],
+    desc: 'Timed mock exams built to match the official YKI test format from A2 to C1. Score breakdowns show exactly where to improve.',
+    badge: 'A2–C1', items: ['Official YKI format', 'Timed mock tests (A2–C1)', 'Score breakdown & analysis'],
   },
 ];
 
@@ -241,6 +241,16 @@ export default function LandingPage() {
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -80]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0.6]);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    html.style.background = '#0a0e1a';
+    html.style.overscrollBehavior = 'none';
+    return () => {
+      html.style.background = '';
+      html.style.overscrollBehavior = '';
+    };
+  }, []);
+
   const finnishWords = [
     { word: 'Hei', translation: 'Hello', x: '10%', y: '20%', delay: 0 },
     { word: 'Kiitos', translation: 'Thank you', x: '75%', y: '15%', delay: 2 },
@@ -250,7 +260,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0a0e1a]">
       <AuroraCanvas />
       {finnishWords.map((w) => <FloatingWord key={w.word} {...w} />)}
 
@@ -270,17 +280,17 @@ export default function LandingPage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-            {[['Features', '#features'], ['Pricing', '/pricing'], ['About', '#about']].map(([label, href]) => (
+            {[['Features', '#features'], ['About', '#about']].map(([label, href]) => (
               <Link key={label} href={href} className="hover:text-white transition-colors">
                 {label}
               </Link>
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="btn-secondary text-sm py-2 px-4">Sign in</Link>
-            <Link href="/register" className="btn-primary text-sm py-2 px-5 flex items-center gap-2">
-              Start Free <Sparkles className="w-4 h-4" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/login" className="btn-secondary !text-xs !py-1.5 !px-3 sm:!text-sm sm:!py-2 sm:!px-4">Sign in</Link>
+            <Link href="/register" className="btn-primary !text-xs !py-1.5 !px-3 sm:!text-sm sm:!py-2 sm:!px-5 flex items-center gap-1 sm:gap-2">
+              Start Free <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Link>
           </div>
         </div>
@@ -349,10 +359,10 @@ export default function LandingPage() {
           transition={{ delay: 0.9 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16"
         >
-          <StatCounter value={50000} suffix="+" label="Active Learners" color="text-aurora-green" />
+          <StatCounter value={7} label="Learning Modules" color="text-aurora-green" />
           <StatCounter value={12} label="Native Languages" color="text-aurora-teal" />
-          <StatCounter value={97} suffix="%" label="YKI Pass Rate" color="gradient-text" />
-          <StatCounter value={5000} suffix="+" label="Finnish Words" color="text-aurora-purple" />
+          <StatCounter value={5000} suffix="+" label="Finnish Words" color="gradient-text" />
+          <StatCounter value={6} label="CEFR Levels" color="text-aurora-purple" />
         </motion.div>
 
         {/* Scroll indicator */}
@@ -393,9 +403,10 @@ export default function LandingPage() {
             {[
               { level: 'A1', label: 'Beginner', desc: 'Greetings, numbers, basic phrases', color: 'from-emerald-400 to-teal-500', icon: '🌱' },
               { level: 'A2', label: 'Elementary', desc: 'Daily conversations, simple grammar', color: 'from-blue-400 to-cyan-500', icon: '🌿' },
-              { level: 'B1', label: 'Intermediate', desc: 'Travel, work, Finnish cases', color: 'from-violet-500 to-purple-600', icon: '🌳' },
+              { level: 'B1', label: 'Intermediate', desc: 'Travel, work, Finnish noun cases', color: 'from-violet-500 to-purple-600', icon: '🌳' },
               { level: 'B2', label: 'Upper-Intermediate', desc: 'Complex topics, fluent speech', color: 'from-amber-400 to-orange-500', icon: '⚡' },
-              { level: 'C1', label: 'Advanced', desc: 'Academic, professional, nuance', color: 'from-rose-500 to-pink-600', icon: '🔥' },
+              { level: 'C1', label: 'Advanced', desc: 'Academic writing, professional nuance', color: 'from-rose-500 to-pink-600', icon: '🔥' },
+              { level: 'C2', label: 'Mastery', desc: 'Near-native fluency, full proficiency', color: 'from-finn-500 to-finn-700', icon: '🏆' },
             ].map((item, i) => (
               <motion.div
                 key={item.level}
@@ -627,7 +638,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── */}
+      {/* ── WHY IT WORKS ── */}
       <section className="relative z-10 py-24 px-4">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -637,104 +648,61 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              People <span className="gradient-text">Love</span> FinnMate
+              Built to Actually <span className="gradient-text">Work</span>
             </h2>
+            <p className="text-slate-400 text-lg max-w-xl mx-auto">
+              Every feature is designed around how humans actually learn languages — not just what looks good on a landing page.
+            </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                name: 'Priya Sharma', flag: '🇮🇳', level: 'Passed YKI B1',
-                text: 'I went from zero Finnish to passing YKI in 8 months using FinnMate every day. The AI tutor explains grammar in Hindi which made all the difference!',
-                stars: 5,
+                icon: Brain,
+                title: 'AI That Explains, Not Just Scores',
+                color: 'text-aurora-purple',
+                gradient: 'from-aurora-purple/20 to-finn-600/10',
+                desc: 'Every mistake in writing, speaking, or grammar gets a clear explanation in your native language — so you understand the why, not just the what.',
+                items: ['Native-language explanations', 'Grammar correction with context', 'Pronunciation phoneme breakdown'],
               },
               {
-                name: 'Ahmed Al-Hassan', flag: '🇸🇦', level: 'A2 → B2 in 6 months',
-                text: 'The speaking practice with pronunciation scoring is incredible. I can now have real conversations with my Finnish colleagues at work.',
-                stars: 5,
+                icon: Target,
+                title: 'Science-Backed Vocabulary',
+                color: 'text-aurora-green',
+                gradient: 'from-aurora-green/20 to-aurora-teal/10',
+                desc: 'The SM-2 spaced repetition algorithm tracks every word you learn and schedules reviews at precisely the right interval — maximising retention, minimising time.',
+                items: ['SM-2 spaced repetition', 'Audio for every word', 'Progress tracked per word'],
               },
               {
-                name: 'María García', flag: '🇪🇸', level: 'B1 Certified',
-                text: 'Finally a platform that makes Finnish grammar fun! The daily streak system keeps me accountable. I haven\'t missed a single day in 3 months.',
-                stars: 5,
+                icon: GraduationCap,
+                title: 'YKI-Ready from Day One',
+                color: 'text-finn-400',
+                gradient: 'from-finn-500/20 to-finn-700/10',
+                desc: 'Practice with timed mock exams that match the real YKI test structure from A2 to C1. Score analysis shows your weak areas before exam day.',
+                items: ['Official YKI format (A2–C1)', 'Timed exam conditions', 'Detailed score breakdown'],
               },
-            ].map((t, i) => (
+            ].map((item, i) => (
               <motion.div
-                key={t.name}
+                key={item.title}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
-                className="glass-card rounded-3xl p-6"
+                className={`glass-card rounded-3xl p-6 bg-gradient-to-br ${item.gradient}`}
               >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(t.stars)].map((_, j) => <Star key={j} className="w-4 h-4 fill-aurora-yellow text-aurora-yellow" />)}
+                <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4`}>
+                  <item.icon className={`w-6 h-6 ${item.color}`} />
                 </div>
-                <p className="text-slate-300 text-sm leading-relaxed mb-6">&quot;{t.text}&quot;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-finn-700/50 flex items-center justify-center text-lg">{t.flag}</div>
-                  <div>
-                    <div className="text-white font-semibold text-sm">{t.name}</div>
-                    <div className="text-aurora-green text-xs">{t.level}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING PREVIEW ── */}
-      <section className="relative z-10 py-24 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              Start Free, <span className="gradient-text">Upgrade Anytime</span>
-            </h2>
-            <p className="text-slate-400 text-lg mb-12">7-day free trial on all paid plans — no credit card required</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { plan: 'Free', price: '0', period: 'forever', color: 'border-white/10',
-                features: ['5 lessons/day', 'Basic vocabulary', 'Grammar reference', 'AI chat (10/day)'],
-                cta: 'Get Started', ctaClass: 'btn-secondary w-full mt-6 justify-center' },
-              { plan: 'Pro', price: '9', period: '/month', color: 'border-finn-500/50', popular: true,
-                features: ['Unlimited lessons', 'Full AI tutor', 'Speaking practice', 'YKI prep', 'Offline mode'],
-                cta: 'Start Free Trial', ctaClass: 'btn-primary w-full mt-6 justify-center' },
-              { plan: 'Premium', price: '19', period: '/month', color: 'border-aurora-purple/50',
-                features: ['Everything in Pro', 'AI pronunciation coach', 'Live certificates', 'Priority support', 'Team features'],
-                cta: 'Start Free Trial', ctaClass: 'btn-secondary w-full mt-6 justify-center border-aurora-purple/40' },
-            ].map((p, i) => (
-              <motion.div
-                key={p.plan}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className={`glass-card rounded-3xl p-6 border ${p.color} relative ${p.popular ? 'glow-blue' : ''}`}
-              >
-                {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-finn-600 text-white text-xs font-bold px-4 py-1 rounded-full">
-                    MOST POPULAR
-                  </div>
-                )}
-                <div className="text-slate-400 text-sm font-medium mb-2">{p.plan}</div>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-black text-white">€{p.price}</span>
-                  <span className="text-slate-400 text-sm">{p.period}</span>
-                </div>
-                <ul className="space-y-3">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-slate-300 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-aurora-green flex-shrink-0" />
-                      {f}
+                <h3 className="text-lg font-bold text-white mb-3">{item.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-4">{item.desc}</p>
+                <ul className="space-y-2">
+                  {item.items.map((point) => (
+                    <li key={point} className="flex items-center gap-2 text-slate-400 text-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-aurora-green flex-shrink-0" />
+                      {point}
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className={`flex items-center gap-2 ${p.ctaClass}`}>
-                  {p.cta} <ArrowRight className="w-4 h-4" />
-                </Link>
               </motion.div>
             ))}
           </div>
@@ -756,7 +724,7 @@ export default function LandingPage() {
               Ready to speak Finnish?
             </h2>
             <p className="text-slate-400 text-lg mb-10">
-              Join 50,000+ learners who chose FinnMate. <br />
+              7 modules. 5,000+ words. Real AI feedback. <br />
               Your first lesson is free — always.
             </p>
             <Link href="/register" className="btn-aurora inline-flex items-center gap-3 text-xl py-5 px-10 font-black">

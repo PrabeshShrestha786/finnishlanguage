@@ -52,16 +52,16 @@ export default function GrammarPage() {
     <div className="space-y-6">
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         {[
           { label: 'Cases to Master', value: '15', sub: 'Each changes meaning', cls: 'bg-blue-50 border-blue-100', valCls: 'text-blue-600' },
           { label: 'Verb Types', value: '6', sub: 'Conjugation patterns', cls: 'bg-violet-50 border-violet-100', valCls: 'text-violet-600' },
           { label: 'Topics', value: `${GRAMMAR_TOPICS.length}`, sub: 'Across A1 → B2', cls: 'bg-pink-50 border-pink-100', valCls: 'text-pink-600' },
         ].map((s) => (
-          <div key={s.label} className={`${s.cls} border rounded-2xl p-4 text-center`}>
-            <div className={`text-2xl font-black ${s.valCls}`}>{s.value}</div>
-            <div className="text-slate-700 text-sm font-bold mt-0.5">{s.label}</div>
-            <div className="text-slate-400 text-xs">{s.sub}</div>
+          <div key={s.label} className={`${s.cls} border rounded-2xl p-2.5 md:p-4 text-center`}>
+            <div className={`text-xl md:text-2xl font-black ${s.valCls}`}>{s.value}</div>
+            <div className="text-slate-700 text-xs md:text-sm font-bold mt-0.5 leading-tight">{s.label}</div>
+            <div className="text-slate-400 text-[10px] md:text-xs hidden sm:block">{s.sub}</div>
           </div>
         ))}
       </div>

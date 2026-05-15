@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { CacheService } from '../../common/cache.service';
+import { StreakService } from '../streak/streak.service';
 
 const TTL_COURSES = 3600; // 1 hour
 
@@ -11,6 +12,7 @@ export class LessonsService {
     private prisma: PrismaService,
     private leaderboard: LeaderboardService,
     private cache: CacheService,
+    private streak: StreakService,
   ) {}
 
   async getCourses(level?: string) {
@@ -126,43 +128,10 @@ export class LessonsService {
     }
 
     if (xpEarned > 0) {
-      await this.updateStreak(userId);
+      await this.streak.updateStreak(userId, xpEarned);
     }
 
     return { attempt, isCorrect, score, xpEarned };
-  }
-
-  private todayFinland(): Date {
-    const now = new Date();
-    const localStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Helsinki' });
-    const dateStr = localStr.split(',')[0];
-    return new Date(`${dateStr}T00:00:00.000Z`);
-  }
-
-  private async updateStreak(userId: string) {
-    const today = this.todayFinland();
-    const yesterday = new Date(today);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-
-    const existing = await this.prisma.streakRecord.findUnique({
-      where: { userId_date: { userId, date: today } },
-    });
-    if (existing) return;
-
-    await this.prisma.streakRecord.create({ data: { userId, date: today, completed: true } });
-    const yest = await this.prisma.streakRecord.findUnique({
-      where: { userId_date: { userId, date: yesterday } },
-    });
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const newStreak = yest ? (user?.currentStreak || 0) + 1 : 1;
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        currentStreak: newStreak,
-        longestStreak: { set: Math.max(user?.longestStreak || 0, newStreak) },
-        lastActiveAt: new Date(),
-      },
-    });
   }
 
   async getUserProgress(userId: string) {

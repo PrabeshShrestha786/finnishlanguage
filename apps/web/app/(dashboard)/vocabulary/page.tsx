@@ -65,7 +65,7 @@ const CATEGORIES = [
 const RATINGS = [
   { quality: 1, label: 'Again',  sub: 'Forgot',        color: 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300' },
   { quality: 2, label: 'Hard',   sub: 'Struggled',     color: 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 hover:border-orange-300' },
-  { quality: 4, label: 'Good',   sub: 'Remembered',    color: 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:border-blue-300' },
+  { quality: 4, label: 'Good',   sub: 'Memorized',     color: 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:border-blue-300' },
   { quality: 5, label: 'Easy',   sub: 'Knew it!',      color: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300' },
 ];
 
@@ -155,7 +155,16 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
             >
               <Heart className={`w-6 h-6 transition-colors ${isFavorite ? 'fill-red-400 text-red-400' : 'text-blue-300'}`} />
             </button>
-            <div className="text-5xl font-black text-white mb-1.5 tracking-tight text-center leading-tight">{word.finnish}</div>
+            {word.finnish.includes(' ') ? (
+              <div className="font-black text-white mb-1.5 tracking-tight text-center leading-snug break-words w-full px-2 text-base md:text-xl">
+                {word.finnish}
+              </div>
+            ) : (
+              <div
+                className="font-black text-white mb-1.5 tracking-tight text-center leading-tight whitespace-nowrap w-full px-2"
+                style={{ fontSize: `clamp(0.875rem, calc(80vw / ${word.finnish.length}), 3rem)` }}
+              >{word.finnish}</div>
+            )}
             {word.pronunciation && (
               <div className="text-blue-200 font-mono text-sm mb-2">[{word.pronunciation}]</div>
             )}
@@ -170,7 +179,16 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
             className="absolute inset-0 bg-white rounded-3xl p-8 flex flex-col items-center justify-center shadow-xl border border-slate-100"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
-            <div className="text-3xl font-black text-slate-800 mb-1 text-center leading-tight">{word.english}</div>
+            {word.english.includes(' ') ? (
+              <div className="font-black text-slate-800 mb-1 text-center leading-snug break-words w-full px-2 text-base md:text-xl">
+                {word.english}
+              </div>
+            ) : (
+              <div
+                className="font-black text-slate-800 mb-1 text-center leading-tight whitespace-nowrap w-full px-2"
+                style={{ fontSize: `clamp(0.875rem, calc(80vw / ${word.english.length}), 2.5rem)` }}
+              >{word.english}</div>
+            )}
             {word.exampleSentence && (
               <div className="text-center mt-2 px-2">
                 <p className="text-slate-500 text-sm italic">&ldquo;{word.exampleSentence}&rdquo;</p>
@@ -199,16 +217,16 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
             className="w-full"
           >
             <p className="text-center text-sm text-slate-400 mb-2">How well did you remember?</p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-1.5 md:gap-3">
               {RATINGS.map((r) => (
                 <motion.button
                   key={r.quality}
                   whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                   onClick={() => onRate(r.quality)}
-                  className={`py-3.5 rounded-2xl border-2 font-bold text-base flex flex-col items-center gap-0.5 transition-all ${r.color}`}
+                  className={`py-2.5 md:py-3.5 rounded-2xl border-2 font-bold text-sm md:text-base flex flex-col items-center gap-0.5 transition-all ${r.color}`}
                 >
                   <span>{r.label}</span>
-                  <span className="text-sm font-normal opacity-70">{r.sub}</span>
+                  <span className="text-[10px] md:text-xs font-normal opacity-70 leading-tight text-center">{r.sub}</span>
                 </motion.button>
               ))}
             </div>
@@ -509,7 +527,7 @@ export default function VocabularyPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl border border-slate-100 shadow-lg p-8 max-w-sm w-full text-center space-y-6"
+          className="bg-white rounded-3xl border border-slate-100 shadow-lg p-4 md:p-8 max-w-sm w-full text-center space-y-6"
         >
           <div className="text-6xl">{emoji}</div>
           <div>
@@ -779,31 +797,31 @@ export default function VocabularyPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={goBack} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all">
+      <div className="flex items-center gap-2">
+        <button onClick={goBack} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all flex-shrink-0">
           ← Back
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-slate-800 font-bold text-lg truncate">
+          <div className="text-slate-800 font-bold text-sm md:text-lg truncate">
             {sessionMode === 'ai' ? '✨ AI Practice Set'
               : sessionMode === 'due' ? '🔄 Due for Review'
               : sessionMode === 'learned' ? '✅ Learned Words'
               : `${CATEGORIES.find((c) => c.id === category)?.emoji ?? ''} ${CATEGORIES.find((c) => c.id === category)?.label ?? 'All Words'}`}
           </div>
-          <div className="text-slate-400 text-sm">
+          <div className="text-slate-400 text-xs truncate">
             {sessionMode === 'category' && level !== 'all' && <span className="text-blue-500 font-semibold mr-1">{level}</span>}
-            {goodCount} correct · +{goodCount * 2} XP earned
+            {goodCount} correct · +{goodCount * 2} XP
           </div>
         </div>
         <button
           onClick={() => { setCardIdx(0); setGoodCount(0); }}
-          className="flex items-center gap-1 text-slate-400 hover:text-slate-600 text-sm transition-colors"
+          className="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
           title="Restart deck"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
-        <div className="flex items-center gap-1 text-amber-600 font-bold">
-          <Star className="w-5 h-5 text-amber-400" />
+        <div className="flex items-center gap-1 text-amber-600 font-bold text-sm flex-shrink-0">
+          <Star className="w-4 h-4 text-amber-400" />
           {(user?.totalXP || 0).toLocaleString()}
         </div>
       </div>

@@ -1512,15 +1512,15 @@ export default function ListeningPage() {
 
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className={`h-2 bg-gradient-to-r ${selectedTrack.color}`} />
-              <div className="p-6">
+              <div className="p-4 md:p-6">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[selectedTrack.level]}`}>{selectedTrack.level}</span>
                   <span className="text-xs text-slate-400">{selectedTrack.category}</span>
                 </div>
-                <h2 className="text-xl font-black text-slate-800 mb-4">{selectedTrack.title} — {selectedTrack.titleEn}</h2>
+                <h2 className="text-base md:text-xl font-black text-slate-800 mb-2 md:mb-4">{selectedTrack.title} — {selectedTrack.titleEn}</h2>
 
                 {/* Player */}
-                <div className={`rounded-xl p-6 mb-4 bg-gradient-to-br ${selectedTrack.color} relative overflow-hidden`}>
+                <div className={`rounded-xl p-4 md:p-6 mb-3 md:mb-4 bg-gradient-to-br ${selectedTrack.color} relative overflow-hidden`}>
                   <div className="absolute inset-0 bg-black/10" />
                   <div className="relative flex flex-col items-center gap-4">
                     <AudioWave playing={playing} />
@@ -1594,8 +1594,8 @@ export default function ListeningPage() {
         {/* QUIZ MODE */}
         {view === 'player' && selectedTrack && quizMode && (
           <motion.div key="quiz" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-xl mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
                 <span className="text-slate-500 text-sm">Question {currentQ + 1} of {selectedTrack.questions.length}</span>
                 <div className="flex gap-1">
                   {selectedTrack.questions.map((_, i) => (
@@ -1604,7 +1604,7 @@ export default function ListeningPage() {
                 </div>
               </div>
               <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                <h3 className="text-slate-800 font-bold text-lg mb-5">{selectedTrack.questions[currentQ].q}</h3>
+                <h3 className="text-slate-800 font-bold text-base md:text-lg mb-3 md:mb-5">{selectedTrack.questions[currentQ].q}</h3>
                 <div className="space-y-2.5">
                   {selectedTrack.questions[currentQ].options.map((opt, idx) => {
                     const isCorrect = idx === selectedTrack.questions[currentQ].correct;
@@ -1644,11 +1644,11 @@ export default function ListeningPage() {
         {/* RESULT */}
         {view === 'result' && selectedTrack && (
           <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${pct >= 70 ? 'bg-violet-100' : 'bg-orange-100'}`}>
-                <Headphones className={`w-8 h-8 ${pct >= 70 ? 'text-violet-600' : 'text-orange-500'}`} />
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-8 text-center">
+              <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${pct >= 70 ? 'bg-violet-100' : 'bg-orange-100'}`}>
+                <Headphones className={`w-7 h-7 md:w-8 md:h-8 ${pct >= 70 ? 'text-violet-600' : 'text-orange-500'}`} />
               </div>
-              <h2 className="text-2xl font-black text-slate-800 mb-1">{pct >= 80 ? 'Excellent hearing!' : pct >= 60 ? 'Good job!' : 'Keep listening!'}</h2>
+              <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-1">{pct >= 80 ? 'Excellent hearing!' : pct >= 60 ? 'Good job!' : 'Keep listening!'}</h2>
               <p className="text-slate-500 text-sm mb-5">{score}/{selectedTrack.questions.length} correct answers</p>
               <div className="bg-slate-50 rounded-xl p-4 mb-6">
                 <div className="text-4xl font-black text-slate-800">{pct}%</div>

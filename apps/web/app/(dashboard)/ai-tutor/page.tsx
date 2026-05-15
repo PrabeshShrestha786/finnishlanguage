@@ -54,7 +54,7 @@ function ChatMessage({ msg }: { msg: Message }) {
           F
         </div>
       )}
-      <div className={`max-w-[78%] group relative`}>
+      <div className={`max-w-[95%] sm:max-w-[78%] group relative`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
           isUser
             ? 'bg-finn-600/40 border border-finn-500/30 text-white rounded-tr-sm'
@@ -174,7 +174,7 @@ export default function AiTutorPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-3xl mx-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="glass-card rounded-3xl p-4 mb-4 flex items-center gap-4">
@@ -212,7 +212,7 @@ export default function AiTutorPage() {
       </div>
 
       {/* Suggestions */}
-      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex flex-wrap gap-2 mb-3">
         {SUGGESTIONS.map((s) => (
           <button key={s} onClick={() => sendMessage(s.replace(/^[^ ]+ /, ''))}
             className="flex-shrink-0 glass-light border border-white/10 hover:border-finn-500/40 text-slate-400 hover:text-white text-xs px-3 py-2 rounded-xl transition-all whitespace-nowrap">

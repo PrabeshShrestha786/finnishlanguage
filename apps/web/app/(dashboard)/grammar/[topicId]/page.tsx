@@ -174,7 +174,7 @@ function PracticeQuiz({ topic, onClose }: { topic: GrammarTopic; onClose: () => 
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col"
-        style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}>
 
         {/* Fixed header */}
         <div className="px-6 pt-6 pb-3 shrink-0">
@@ -378,8 +378,8 @@ function VowelHarmonyContent({ content }: { content: any }) {
           <p className="text-slate-700 text-sm leading-relaxed">{content.rule}</p>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:p-5">
           <div className="text-emerald-700 font-bold mb-3 text-sm">Back Vowels</div>
           <div className="flex gap-4 mb-2">
             {content.back.map((v: string) => (
@@ -446,7 +446,7 @@ function RichContentRenderer({ content }: { content: any }) {
 
         if (section.type === 'vowel-groups') return (
           <div key={i} className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {/* Back vowels */}
               <div className="bg-orange-50 border border-orange-200 rounded-2xl overflow-hidden">
                 <div className="bg-orange-100 border-b border-orange-200 px-4 py-2.5">
@@ -496,19 +496,19 @@ function RichContentRenderer({ content }: { content: any }) {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     {section.headers.map((h: string) => (
-                      <th key={h} className="px-4 py-3 text-left text-slate-500 font-semibold text-xs uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-2 md:px-4 py-3 text-left text-slate-500 font-semibold text-xs uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {section.rows.map((row: string[], ri: number) => (
                     <tr key={ri} className={`border-b border-slate-100 ${ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/40 transition-colors`}>
-                      <td className="px-4 py-3.5 text-slate-800 font-semibold">{row[0]}</td>
-                      <td className="px-4 py-3.5">
-                        <code className="text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg font-mono text-sm font-bold">{row[1]}</code>
+                      <td className="px-2 md:px-4 py-3.5 text-slate-800 font-semibold">{row[0]}</td>
+                      <td className="px-2 md:px-4 py-3.5">
+                        <code className="text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded-lg font-mono text-sm font-bold">{row[1]}</code>
                       </td>
-                      {row[2] && <td className="px-4 py-3.5 text-slate-500 text-sm">{row[2]}</td>}
-                      {row[3] && <td className="px-4 py-3.5 text-xs text-slate-400">{row[3]}</td>}
+                      {row[2] && <td className="px-2 md:px-4 py-3.5 text-slate-500 text-sm">{row[2]}</td>}
+                      {row[3] && <td className="px-2 md:px-4 py-3.5 text-xs text-slate-400">{row[3]}</td>}
                     </tr>
                   ))}
                 </tbody>

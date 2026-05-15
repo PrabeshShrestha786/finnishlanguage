@@ -21,10 +21,17 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
     cors: {
-      origin: [
-        'http://localhost:3000',
-        process.env.NEXT_PUBLIC_APP_URL || '',
-      ].filter(Boolean),
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl) and any local network origin
+        if (!origin) return callback(null, true);
+        const allowed = [
+          'http://localhost:3000',
+          process.env.NEXT_PUBLIC_APP_URL || '',
+        ].filter(Boolean);
+        const isLocalNetwork = /^http:\/\/192\.168\.\d+\.\d+:\d+$/.test(origin);
+        if (allowed.includes(origin) || isLocalNetwork) return callback(null, true);
+        callback(new Error(`CORS blocked: ${origin}`));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
@@ -71,7 +78,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = configService.get<number>('PORT') || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 FinnMate API running on: http://localhost:${port}/api/v1`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
 }

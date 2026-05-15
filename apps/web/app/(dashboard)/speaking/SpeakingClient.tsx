@@ -221,9 +221,9 @@ const { data: speakingSets = [] } = useQuery<SpeakingSet[]>({
           ← Back to sets
         </button>
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl p-10 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-black text-white mb-2">Set Complete!</h2>
+          className="rounded-3xl p-6 md:p-10 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
+          <div className="text-5xl md:text-6xl mb-3 md:mb-4">🎉</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2">Set Complete!</h2>
           <p className="text-slate-400 mb-6">You finished all {activePhrases.length} phrases</p>
           <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-4 py-2 rounded-full text-aurora-green font-bold mb-8">
             <Zap className="w-4 h-4" /> +{activeSetXp} XP Earned
@@ -381,15 +381,15 @@ const { data: speakingSets = [] } = useQuery<SpeakingSet[]>({
 
           {phrase && (
             <motion.div key={`${activePhrases[0]?.fi}-${phraseIdx}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl p-6 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
+              className="rounded-3xl p-4 md:p-6 text-center bg-gradient-to-br from-[#131f35] to-[#0d1526] border border-[#1e3050] shadow-lg">
               <div className="inline-flex items-center gap-2 bg-aurora-green/20 border border-aurora-green/30 px-3 py-1 rounded-full text-aurora-green text-xs font-bold mb-4">
                 {activeSetLevel} · Phrase {phraseIdx + 1} of {activePhrases.length}
               </div>
 
               {state !== 'done' && (
                 <>
-                  <p className="text-4xl font-black text-white mb-2">{phrase.fi}</p>
-                  <p className="text-slate-400 text-lg mb-1">{phrase.en}</p>
+                  <p className="text-2xl md:text-4xl font-black text-white mb-2">{phrase.fi}</p>
+                  <p className="text-slate-400 text-sm md:text-lg mb-1">{phrase.en}</p>
                   <div className="flex items-center justify-center gap-2 text-slate-500 text-sm mb-4">
                     <Info className="w-3.5 h-3.5" />
                     <span className="font-mono">{phrase.tip}</span>
