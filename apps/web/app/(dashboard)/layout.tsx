@@ -179,7 +179,8 @@ function MobileBottomNav() {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-lg"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center justify-around px-1 py-2">
         {/* Home */}
         {MOBILE_NAV.slice(0, 1).map((item) => {
@@ -373,7 +374,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
+    <div className="h-[100dvh] bg-slate-50 flex overflow-hidden">
       {/* Sidebar — desktop only */}
       <div className="hidden md:flex h-full">
         <Sidebar />
@@ -384,9 +385,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Mobile header */}
         <MobileHeader />
 
-        <main className="flex-1 overflow-y-auto">
-          {/* pb-20 on mobile leaves room above the bottom nav */}
-          <div className="max-w-7xl mx-auto p-4 md:p-6 pb-24 md:pb-6">
+        <main className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+          <div className="max-w-7xl mx-auto p-4 md:p-6 md:pb-6"
+            style={{ paddingBottom: 'max(6rem, calc(4.5rem + env(safe-area-inset-bottom, 0px)))' }}>
             {children}
           </div>
         </main>
