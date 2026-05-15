@@ -59,25 +59,6 @@ function AuroraCanvas() {
 }
 
 // ─── FLOATING WORD ─────────────────────────────────────────────────────────────
-function FloatingWord({ word, translation, delay = 0, x = '50%', y = '50%' }: {
-  word: string; translation: string; delay?: number; x?: string; y?: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: [0, 1, 1, 0], y: [20, 0, -10, -30] }}
-      transition={{ duration: 4, delay, repeat: Infinity, repeatDelay: 6 }}
-      className="absolute pointer-events-none"
-      style={{ left: `min(${x}, calc(100% - 200px))`, top: y }}
-    >
-      <div className="glass-card rounded-2xl px-4 py-2 text-sm font-medium">
-        <span className="text-aurora-green">{word}</span>
-        <span className="text-slate-400 ml-2">→</span>
-        <span className="text-slate-300 ml-2">{translation}</span>
-      </div>
-    </motion.div>
-  );
-}
 
 // ─── STAT COUNTER ─────────────────────────────────────────────────────────────
 function StatCounter({ value, suffix = '', label, color }: {
@@ -251,18 +232,11 @@ export default function LandingPage() {
     };
   }, []);
 
-  const finnishWords = [
-    { word: 'Hei', translation: 'Hello', x: '10%', y: '20%', delay: 0 },
-    { word: 'Kiitos', translation: 'Thank you', x: '75%', y: '15%', delay: 2 },
-    { word: 'Sauna', translation: 'Sauna', x: '85%', y: '60%', delay: 1 },
-    { word: 'Talvi', translation: 'Winter', x: '5%', y: '65%', delay: 3 },
-    { word: 'Kaunis', translation: 'Beautiful', x: '60%', y: '75%', delay: 1.5 },
-  ];
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#0a0e1a]">
       <AuroraCanvas />
-      {finnishWords.map((w) => <FloatingWord key={w.word} {...w} />)}
+
 
       {/* ── NAVBAR ── */}
       <motion.nav
