@@ -35,7 +35,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/ai-tutor':   'AI Tutor',
   '/profile':    'Profile',
   '/leaderboard':'Leaderboard',
-  '/lessons':    'Lessons',
 };
 
 // ── Finnish loading facts ────────────────────────────────────────────────────

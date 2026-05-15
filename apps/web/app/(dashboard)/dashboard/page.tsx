@@ -26,20 +26,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
 
   const prefetchRoute = useCallback((href: string) => {
-    if (href === '/lessons') {
-      queryClient.prefetchQuery({
-        queryKey: ['courses'],
-        queryFn: () => api.get('/lessons/courses').then((r) => r.data.data),
-        staleTime: Infinity,
-      });
-      if (user) {
-        queryClient.prefetchQuery({
-          queryKey: ['progress'],
-          queryFn: () => api.get('/lessons/progress').then((r) => r.data.data),
-          staleTime: 30_000,
-        });
-      }
-    } else if (href === '/vocabulary') {
+    if (href === '/vocabulary') {
       queryClient.prefetchQuery({
         queryKey: ['vocab-stats'],
         queryFn: () => api.get('/vocabulary/stats').then((r) => r.data.data).catch(() => null),
@@ -111,9 +98,6 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-slate-800">Learning Modules</h2>
-          <Link href="/lessons" onMouseEnter={() => prefetchRoute('/lessons')} className="text-blue-600 text-sm hover:text-blue-700 flex items-center gap-1 font-medium">
-            View all <ChevronRight className="w-4 h-4" />
-          </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {MODULES.map((mod, i) => (

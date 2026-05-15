@@ -83,7 +83,7 @@ interface Word {
   level: string;
 }
 
-function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, onToggleFavorite }: {
+function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, onToggleFavorite, showFavorite = true, isAiMode = false }: {
   word: Word;
   onRate: (quality: number) => void;
   index: number;
@@ -91,6 +91,8 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
   isExtraPractice: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  showFavorite?: boolean;
+  isAiMode?: boolean;
 }) {
   const [flipped, setFlipped] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -149,12 +151,14 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
             className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 flex flex-col items-center justify-center shadow-xl"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-              className="absolute top-4 right-4 p-2 rounded-full transition-colors hover:bg-white/10"
-            >
-              <Heart className={`w-6 h-6 transition-colors ${isFavorite ? 'fill-red-400 text-red-400' : 'text-blue-300'}`} />
-            </button>
+            {showFavorite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+                className="absolute top-4 right-4 p-2 rounded-full transition-colors hover:bg-white/10"
+              >
+                <Heart className={`w-6 h-6 transition-colors ${isFavorite ? 'fill-rose-500 text-rose-500 drop-shadow-sm' : 'text-white/60'}`} />
+              </button>
+            )}
             {word.finnish.includes(' ') ? (
               <div className="font-black text-white mb-1.5 tracking-tight text-center leading-snug break-words w-full px-2 text-base md:text-xl">
                 {word.finnish}
@@ -216,20 +220,41 @@ function FlashCard({ word, onRate, index, total, isExtraPractice, isFavorite, on
             exit={{ opacity: 0, y: 8 }}
             className="w-full"
           >
-            <p className="text-center text-sm text-slate-400 mb-2">How well did you remember?</p>
-            <div className="grid grid-cols-4 gap-1.5 md:gap-3">
-              {RATINGS.map((r) => (
+            {isAiMode ? (
+              <div className="grid grid-cols-2 gap-3">
                 <motion.button
-                  key={r.quality}
                   whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
-                  onClick={() => onRate(r.quality)}
-                  className={`py-2.5 md:py-3.5 rounded-2xl border-2 font-bold text-sm md:text-base flex flex-col items-center gap-0.5 transition-all ${r.color}`}
+                  onClick={() => onRate(1)}
+                  className="py-3 md:py-4 rounded-2xl border-2 font-bold text-sm md:text-base border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all"
                 >
-                  <span>{r.label}</span>
-                  <span className="text-[10px] md:text-xs font-normal opacity-70 leading-tight text-center">{r.sub}</span>
+                  Didn&apos;t know it
                 </motion.button>
-              ))}
-            </div>
+                <motion.button
+                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => onRate(5)}
+                  className="py-3 md:py-4 rounded-2xl border-2 font-bold text-sm md:text-base border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all"
+                >
+                  Knew it
+                </motion.button>
+              </div>
+            ) : (
+              <>
+                <p className="text-center text-sm text-slate-400 mb-2">How well did you remember?</p>
+                <div className="grid grid-cols-4 gap-1.5 md:gap-3">
+                  {RATINGS.map((r) => (
+                    <motion.button
+                      key={r.quality}
+                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => onRate(r.quality)}
+                      className={`py-2.5 md:py-3.5 rounded-2xl border-2 font-bold text-sm md:text-base flex flex-col items-center gap-0.5 transition-all ${r.color}`}
+                    >
+                      <span>{r.label}</span>
+                      <span className="text-[10px] md:text-xs font-normal opacity-70 leading-tight text-center">{r.sub}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
         ) : (
           <motion.p
@@ -353,15 +378,16 @@ export default function VocabularyPage() {
   });
 
   const favoriteMutation = useMutation({
-    mutationFn: (wordId: string) => api.post(`/vocabulary/${wordId}/favorite`),
-    onSuccess: (_data, wordId) => {
+    mutationFn: (wordId: string) => api.post(`/vocabulary/${wordId}/favorite`).then((r) => r.data.data),
+    onSuccess: (data, wordId) => {
       setFavoriteIds((prev) => {
         const next = new Set(prev);
-        next.has(wordId) ? next.delete(wordId) : next.add(wordId);
+        data?.isFavorite ? next.add(wordId) : next.delete(wordId);
         return next;
       });
       queryClient.invalidateQueries({ queryKey: ['vocab-favorites'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['vocab-favorites-count'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['vocab-flashcards'] });
     },
   });
 
@@ -371,7 +397,7 @@ export default function VocabularyPage() {
     exampleTranslation: w.exampleTranslation, category: w.category, level: w.level,
   });
 
-  // Seed favoriteIds from progress data when it loads
+  // Seed favoriteIds from SRS progress data (non-Favorites sessions)
   useEffect(() => {
     if (!flashcardData?.flashcards) return;
     const ids = new Set<string>(
@@ -379,6 +405,13 @@ export default function VocabularyPage() {
     );
     setFavoriteIds(ids);
   }, [flashcardData]);
+
+  // Seed favoriteIds from wordsData for Favorites session — flashcardData is empty there
+  // because 'Favorites' is not a real VocabWord category field value in the DB.
+  useEffect(() => {
+    if (category !== 'Favorites' || !wordsData?.words) return;
+    setFavoriteIds(new Set((wordsData.words as any[]).map((w: any) => w.id)));
+  }, [category, wordsData]);
 
   // Build card deck: SRS due cards first, then fall back to all words for extra practice
   const srsCards: Word[] = (() => {
@@ -850,6 +883,8 @@ export default function VocabularyPage() {
                 isExtraPractice={isExtraPractice}
                 isFavorite={favoriteIds.has(currentWord.id)}
                 onToggleFavorite={() => favoriteMutation.mutate(currentWord.id)}
+                showFavorite={sessionMode !== 'ai'}
+                isAiMode={sessionMode === 'ai'}
               />
             </motion.div>
           </AnimatePresence>

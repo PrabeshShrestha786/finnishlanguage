@@ -107,12 +107,12 @@ export class VocabularyService {
 
   async getUserVocabStats(userId: string) {
     const now = new Date();
-    const [total, learned, due] = await Promise.all([
+    const [total, learned, due, scheduled] = await Promise.all([
       this.prisma.vocabProgress.count({ where: { userId } }),
-      this.prisma.vocabProgress.count({ where: { userId, isLearned: true } }),
+      this.prisma.vocabProgress.count({ where: { userId, isLearned: true, nextReview: { gt: now } } }),
       this.prisma.vocabProgress.count({ where: { userId, nextReview: { lte: now } } }),
+      this.prisma.vocabProgress.count({ where: { userId, isLearned: false, nextReview: { gt: now } } }),
     ]);
-    const scheduled = total - learned - due;
     return { totalStudied: total, learned, dueForReview: due, scheduled };
   }
 

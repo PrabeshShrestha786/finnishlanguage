@@ -18,7 +18,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/ai-tutor':    'FinnMate AI Tutor',
   '/profile':     'My Profile',
   '/leaderboard': 'Leaderboard',
-  '/lessons':     'Learning Path',
 };
 
 export default function DashboardHeader() {
