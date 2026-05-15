@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, AlertCircle, Flame, Zap, Bell,
+  LayoutDashboard, AlertCircle, Flame, Zap,
   Trophy, UserCircle, X, ImagePlus, Send, CheckCircle2, Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -150,10 +150,7 @@ function MobileHeader() {
           <Zap className="w-3.5 h-3.5 text-amber-500" />
           <span className="text-amber-600 text-xs font-bold">{(user?.totalXP || 0).toLocaleString()}</span>
         </div>
-        <button className="relative p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 transition-all">
-          <Bell className="w-4 h-4" />
-          <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-blue-500 rounded-full" />
-        </button>
+
         <Link href="/profile" className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
           {user?.avatar ? (
             <Image src={user.avatar} alt="" width={32} height={32} className="object-cover w-full h-full" />

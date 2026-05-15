@@ -301,17 +301,6 @@ export default function LandingPage() {
         style={{ y: heroY, opacity: heroOpacity }}
         className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 pt-16"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="inline-flex items-center gap-2 glass-light px-4 py-2 rounded-full text-sm font-medium text-aurora-green border border-aurora-green/20 mb-8"
-        >
-          <Sparkles className="w-4 h-4" />
-          Powered by Groq AI · 100% Free to Start
-          <span className="bg-aurora-green text-nordic-dark px-2 py-0.5 rounded-full text-xs font-bold ml-1">NEW</span>
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
